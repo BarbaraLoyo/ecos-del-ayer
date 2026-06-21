@@ -1175,14 +1175,10 @@ const firebaseConfig = {
   projectId: "ecosdelayer-cd396",
   storageBucket: "ecosdelayer-cd396.firebasestorage.app",
   messagingSenderId: "423841633142",
-  appId: "1:423841633142:web:761cf322352431e0596057",
-  measurementId: "G-MD9HPRTZLQ"
+  appId: "1:423841633142:web:761cf322352431e0596057"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-const FIREBASE_READY = firebaseConfig.apiKey !== "AIzaSyDo_jeZ25qCvhKjh6oc6XziXmKDPa_rrLc";
+const FIREBASE_READY = firebaseConfig.apiKey !== "PEGA_TU_API_KEY_ACA";
 
 let fbApp, db, fbAuth;
 if (FIREBASE_READY) {

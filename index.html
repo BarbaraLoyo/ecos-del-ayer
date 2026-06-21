@@ -1,0 +1,2229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ecos del Ayer Store</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Bebas+Neue&family=Permanent+Marker&family=Barlow:wght@400;600;700&family=Boogaloo&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<!-- FIREBASE SDK — necesario para sincronizar productos, música y configuración entre todos los dispositivos -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+/* =============================================
+   GLOBAL VARIABLES — Ecos del Ayer
+============================================= */
+:root {
+  --neon-cyan:   #00e5ff;
+  --neon-pink:   #ff2d78;
+  --neon-yellow: #ffb800;
+  --neon-purple: #c800ff;
+  --neon-blue:   #0066ff;
+  --bg-dark:     #070710;
+  --bg-card:     #0e0e22;
+  --bg-panel:    #10102a;
+  --text-main:   #f0eaff;
+  --text-muted:  #7a7aaa;
+  --border-glow: rgba(0,229,255,0.2);
+  --font-title:  'Bebas Neue', sans-serif;
+  --font-script: 'Pacifico', cursive;
+  --font-marker: 'Permanent Marker', cursive;
+  --font-body:   'Barlow', sans-serif;
+  --font-deco:   'Boogaloo', cursive;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-dark);
+  color: var(--text-main);
+  overflow-x: hidden;
+}
+
+/* Scanlines */
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 4px);
+  pointer-events:none;
+  z-index:9999;
+}
+
+::-webkit-scrollbar { width:5px; }
+::-webkit-scrollbar-track { background:var(--bg-dark); }
+::-webkit-scrollbar-thumb { background:var(--neon-purple); border-radius:3px; }
+
+/* =============================================
+   NAVBAR
+============================================= */
+#navbar {
+  position:fixed; top:0; left:0; right:0; z-index:800;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 24px;
+  background:rgba(7,7,16,0.93);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(0,229,255,0.15);
+}
+
+/* LOGO — replicates the "Ecos del Ayer" brushstroke style */
+.nav-logo {
+  display:flex; flex-direction:column; line-height:1; cursor:pointer;
+  text-decoration:none;
+}
+.nav-logo-ecos {
+  font-family:var(--font-marker);
+  font-size:1.55rem;
+  color:#fff;
+  letter-spacing:-1px;
+  text-shadow:0 0 18px rgba(255,255,255,0.6);
+}
+.nav-logo-del {
+  font-family:var(--font-script);
+  font-size:0.85rem;
+  color:var(--neon-cyan);
+  text-shadow:0 0 10px var(--neon-cyan);
+  margin-left:4px;
+  letter-spacing:1px;
+}
+.nav-logo-ayer {
+  font-family:var(--font-script);
+  font-size:1.45rem;
+  color:var(--neon-cyan);
+  text-shadow:0 0 14px var(--neon-cyan), 0 0 30px rgba(0,229,255,0.4);
+  letter-spacing:2px;
+  margin-top:-4px;
+}
+.nav-logo-store {
+  font-family:var(--font-title);
+  font-size:0.7rem;
+  letter-spacing:5px;
+  color:var(--neon-yellow);
+  text-shadow:0 0 8px var(--neon-yellow);
+  margin-top:2px;
+}
+
+.nav-links { display:flex; gap:20px; list-style:none; }
+.nav-links a {
+  color:var(--text-muted); text-decoration:none;
+  font-size:0.78rem; letter-spacing:2px; text-transform:uppercase; font-weight:600;
+  transition:color .2s, text-shadow .2s;
+}
+.nav-links a:hover { color:var(--neon-cyan); text-shadow:0 0 8px var(--neon-cyan); }
+
+.nav-right { display:flex; align-items:center; gap:12px; }
+
+#cart-btn {
+  position:relative; background:none;
+  border:1px solid var(--neon-pink);
+  color:var(--neon-pink); font-size:1.1rem;
+  cursor:pointer; padding:7px 14px; border-radius:6px;
+  box-shadow:0 0 8px rgba(255,45,120,0.3); transition:all .2s;
+}
+#cart-btn:hover { background:rgba(255,45,120,0.12); box-shadow:0 0 16px rgba(255,45,120,0.5); }
+
+#cart-count {
+  position:absolute; top:-8px; right:-8px;
+  background:var(--neon-yellow); color:#000;
+  font-size:.6rem; font-weight:700;
+  width:18px; height:18px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+}
+
+.nav-admin-btn {
+  font-size:.72rem; color:var(--text-muted); background:none;
+  border:1px solid rgba(255,255,255,0.1);
+  padding:6px 12px; border-radius:4px; cursor:pointer;
+  letter-spacing:1px; text-transform:uppercase; transition:all .2s;
+}
+.nav-admin-btn:hover { color:var(--neon-purple); border-color:var(--neon-purple); }
+
+/* =============================================
+   HERO
+============================================= */
+#hero {
+  min-height:100vh;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; padding:100px 24px 60px; position:relative;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(200,0,255,0.13) 0%, transparent 55%),
+    radial-gradient(ellipse at 20% 70%, rgba(255,45,120,0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 60%, rgba(0,229,255,0.07) 0%, transparent 50%),
+    var(--bg-dark);
+}
+
+/* Neon circle ring decoration */
+.hero-ring {
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  pointer-events:none; overflow:hidden;
+}
+.hero-ring::before {
+  content:'';
+  width:min(85vw, 700px); height:min(85vw, 700px);
+  border-radius:50%;
+  border:3px solid transparent;
+  background:
+    linear-gradient(var(--bg-dark),var(--bg-dark)) padding-box,
+    conic-gradient(var(--neon-pink), var(--neon-purple), var(--neon-cyan), var(--neon-blue), var(--neon-pink)) border-box;
+  opacity:0.55;
+  animation:ring-spin 12s linear infinite;
+}
+@keyframes ring-spin { to { transform:rotate(360deg); } }
+
+.hero-eyebrow {
+  font-family:var(--font-deco); font-size:.9rem; letter-spacing:5px;
+  color:var(--neon-pink); text-shadow:0 0 8px var(--neon-pink);
+  text-transform:uppercase; margin-bottom:20px; position:relative;
+}
+
+/* BIG LOGO in hero — mimics the flyer style */
+.hero-logo-wrap { position:relative; margin-bottom:16px; }
+.hero-ecos {
+  font-family:var(--font-marker);
+  font-size:clamp(4rem, 14vw, 8.5rem);
+  color:#fff;
+  text-shadow:0 0 30px rgba(255,255,255,0.5), 0 4px 0 rgba(0,0,0,0.5);
+  line-height:0.9;
+  display:block;
+}
+.hero-del {
+  font-family:var(--font-script);
+  font-size:clamp(1.5rem, 5vw, 3.5rem);
+  color:var(--neon-cyan);
+  text-shadow:0 0 16px var(--neon-cyan), 0 0 40px rgba(0,229,255,0.4);
+  display:inline-block;
+  margin-right:8px;
+}
+.hero-ayer {
+  font-family:var(--font-script);
+  font-size:clamp(3rem, 11vw, 7rem);
+  color:var(--neon-cyan);
+  text-shadow:0 0 20px var(--neon-cyan), 0 0 60px rgba(0,229,255,0.35);
+  display:inline-block;
+  line-height:0.85;
+}
+.hero-store {
+  font-family:var(--font-title);
+  font-size:clamp(1.2rem, 4vw, 2.5rem);
+  letter-spacing:8px;
+  color:var(--neon-yellow);
+  text-shadow:0 0 12px var(--neon-yellow), 0 0 30px rgba(255,184,0,0.3);
+  display:block;
+  margin-top:4px;
+}
+
+/* Pink underline accent */
+.hero-accent {
+  width:clamp(120px, 40%, 320px); height:3px;
+  background:linear-gradient(90deg, transparent, var(--neon-pink), transparent);
+  margin:12px auto 20px;
+  box-shadow:0 0 10px var(--neon-pink);
+}
+
+.hero-tagline {
+  color:var(--text-muted); font-size:.9rem; letter-spacing:3px;
+  text-transform:uppercase; margin-bottom:32px; position:relative;
+}
+
+/* Category icons row */
+.hero-cats {
+  display:flex; gap:28px; justify-content:center; flex-wrap:wrap;
+  margin-bottom:36px; position:relative;
+}
+.hero-cat-item {
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+}
+.hero-cat-icon {
+  width:48px; height:48px; border-radius:8px;
+  border:1px solid;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.4rem;
+}
+.hero-cat-label {
+  font-family:var(--font-deco); font-size:.65rem; letter-spacing:2px;
+  text-transform:uppercase;
+}
+
+.btn-primary {
+  display:inline-block; padding:14px 36px;
+  background:linear-gradient(135deg,var(--neon-pink),var(--neon-purple));
+  color:#fff; font-family:var(--font-title); font-size:1.2rem;
+  letter-spacing:2px; border:none; border-radius:6px; cursor:pointer;
+  text-decoration:none; box-shadow:0 0 20px rgba(255,45,120,0.5);
+  transition:all .2s; position:relative;
+}
+.btn-primary:hover { transform:translateY(-2px); box-shadow:0 0 30px rgba(255,45,120,0.7); }
+
+/* =============================================
+   MUSIC PLAYER — Fixed bottom right
+============================================= */
+#music-player {
+  position:fixed; bottom:20px; right:20px; z-index:600;
+  width:290px;
+  background:rgba(14,14,34,0.97);
+  border:1px solid var(--neon-cyan);
+  border-radius:14px;
+  box-shadow:0 0 24px rgba(0,229,255,0.25), inset 0 0 12px rgba(0,229,255,0.04);
+  padding:14px 16px;
+  backdrop-filter:blur(16px);
+  transition:all .3s;
+}
+#music-player.minimized { width:160px; }
+#music-player.minimized .player-body { display:none; }
+
+.player-header {
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;
+}
+.player-title {
+  font-family:var(--font-deco); font-size:.88rem;
+  color:var(--neon-cyan); text-shadow:0 0 8px var(--neon-cyan);
+  display:flex; align-items:center; gap:6px;
+}
+.cassette-reel {
+  display:inline-block; font-size:1rem;
+  transition:transform .1s;
+}
+.cassette-reel.spinning { animation:reel .4s linear infinite; }
+@keyframes reel { to { transform:rotate(360deg); } }
+
+.player-min-btn {
+  background:none; border:none; color:var(--text-muted);
+  cursor:pointer; font-size:.8rem; padding:2px 6px; border-radius:4px;
+}
+.player-min-btn:hover { color:var(--neon-cyan); }
+
+/* Waveform visualizer bars */
+.player-viz {
+  display:flex; align-items:flex-end; gap:2px; height:20px; margin-bottom:8px;
+}
+.viz-bar {
+  width:3px; background:var(--neon-cyan); border-radius:2px;
+  opacity:0.4; transition:height .1s;
+  animation:none;
+}
+.viz-bar.active { opacity:1; animation:viz-bounce var(--dur,0.6s) ease-in-out infinite alternate; }
+@keyframes viz-bounce {
+  from { height:2px; }
+  to   { height:var(--max,14px); }
+}
+
+.player-track { font-size:.78rem; color:var(--text-main); margin-bottom:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.player-artist { font-size:.68rem; color:var(--text-muted); margin-bottom:10px; }
+
+/* Progress bar */
+.player-progress-wrap {
+  position:relative; height:4px; background:rgba(255,255,255,0.1);
+  border-radius:2px; margin-bottom:10px; cursor:pointer;
+}
+.player-progress-fill {
+  height:100%; background:linear-gradient(90deg,var(--neon-cyan),var(--neon-purple));
+  border-radius:2px; width:0%; transition:width .5s linear;
+  box-shadow:0 0 6px var(--neon-cyan);
+}
+.player-time {
+  display:flex; justify-content:space-between;
+  font-size:.62rem; color:var(--text-muted); margin-bottom:10px;
+}
+
+.player-controls {
+  display:flex; align-items:center; gap:8px; margin-bottom:10px;
+}
+.p-btn {
+  background:none; border:1px solid rgba(255,255,255,0.12);
+  color:var(--text-main); width:30px; height:30px; border-radius:50%;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  font-size:.75rem; transition:all .2s; flex-shrink:0;
+}
+.p-btn:hover { border-color:var(--neon-cyan); color:var(--neon-cyan); box-shadow:0 0 8px rgba(0,229,255,0.3); }
+.p-btn.play {
+  background:var(--neon-cyan); border-color:var(--neon-cyan); color:var(--bg-dark);
+  width:36px; height:36px; font-size:.85rem;
+  box-shadow:0 0 12px rgba(0,229,255,0.5);
+}
+.p-btn.play:hover { box-shadow:0 0 20px rgba(0,229,255,0.7); }
+
+.player-vol {
+  display:flex; align-items:center; gap:6px; font-size:.7rem; color:var(--text-muted);
+}
+.player-vol input[type=range] {
+  flex:1; height:3px; accent-color:var(--neon-cyan); cursor:pointer;
+}
+
+.player-tracklist-btn {
+  width:100%; margin-top:8px; padding:5px;
+  background:rgba(0,229,255,0.06); border:1px solid rgba(0,229,255,0.2);
+  color:var(--neon-cyan); border-radius:6px; cursor:pointer;
+  font-family:var(--font-deco); font-size:.78rem; letter-spacing:1px;
+  transition:all .2s;
+}
+.player-tracklist-btn:hover { background:rgba(0,229,255,0.12); }
+
+/* Error message */
+.player-error { font-size:.68rem; color:var(--neon-yellow); text-align:center; margin-top:4px; display:none; }
+
+/* =============================================
+   SECTION
+============================================= */
+.section { padding:80px 24px; max-width:1200px; margin:0 auto; }
+.section-header { text-align:center; margin-bottom:44px; }
+.section-label {
+  display:inline-block; font-family:var(--font-deco); font-size:.82rem;
+  letter-spacing:4px; text-transform:uppercase; color:var(--neon-pink);
+  border:1px solid rgba(255,45,120,0.35); padding:4px 16px; border-radius:20px; margin-bottom:14px;
+}
+.section-title {
+  font-family:var(--font-title); font-size:clamp(2.2rem,6vw,4rem);
+  letter-spacing:3px; color:var(--text-main);
+}
+.section-title span { color:var(--neon-cyan); text-shadow:0 0 12px var(--neon-cyan); }
+
+/* =============================================
+   FILTERS
+============================================= */
+#filters { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:36px; }
+.filter-btn {
+  background:transparent; border:1px solid rgba(255,255,255,0.12);
+  color:var(--text-muted); padding:8px 20px; border-radius:20px; cursor:pointer;
+  font-family:var(--font-deco); font-size:.88rem; letter-spacing:1px; transition:all .2s;
+}
+.filter-btn:hover, .filter-btn.active {
+  border-color:var(--neon-cyan); color:var(--neon-cyan);
+  background:rgba(0,229,255,0.07); box-shadow:0 0 10px rgba(0,229,255,0.2);
+}
+
+/* =============================================
+   PRODUCT CARDS
+============================================= */
+#products-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:22px; }
+
+.product-card {
+  background:var(--bg-card); border:1px solid rgba(0,229,255,0.15);
+  border-radius:12px; overflow:hidden; transition:transform .2s, box-shadow .2s; position:relative;
+}
+.product-card:hover {
+  transform:translateY(-5px);
+  box-shadow:0 10px 36px rgba(0,229,255,0.15);
+  border-color:rgba(0,229,255,0.45);
+}
+.product-img-wrap { position:relative; padding-top:72%; overflow:hidden; background:#0a0a1e; }
+.product-img-wrap img {
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; transition:transform .4s;
+}
+.product-card:hover .product-img-wrap img { transform:scale(1.06); }
+
+.product-badge {
+  position:absolute; top:10px; left:10px;
+  background:var(--neon-pink); color:#fff;
+  font-size:.62rem; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+  padding:3px 10px; border-radius:10px; box-shadow:0 0 8px rgba(255,45,120,0.5);
+}
+.product-stock-badge {
+  position:absolute; top:10px; right:10px;
+  font-size:.62rem; font-weight:700; padding:3px 10px; border-radius:10px;
+}
+.product-body { padding:16px; }
+.product-cat { font-size:.68rem; letter-spacing:2px; text-transform:uppercase; color:var(--neon-yellow); margin-bottom:5px; }
+.product-name { font-family:var(--font-title); font-size:1.25rem; letter-spacing:1px; margin-bottom:3px; }
+.product-dims { font-size:.76rem; color:var(--text-muted); margin-bottom:12px; }
+.product-footer { display:flex; align-items:center; justify-content:space-between; }
+.product-price { font-family:var(--font-title); font-size:1.55rem; color:var(--neon-cyan); text-shadow:0 0 8px var(--neon-cyan); }
+.add-cart-btn {
+  background:linear-gradient(135deg,var(--neon-pink),var(--neon-purple));
+  color:#fff; border:none; padding:8px 14px; border-radius:6px; cursor:pointer;
+  font-family:var(--font-deco); font-size:.85rem; letter-spacing:1px;
+  box-shadow:0 0 10px rgba(255,45,120,0.35); transition:all .2s;
+}
+.add-cart-btn:hover { transform:scale(1.06); box-shadow:0 0 18px rgba(255,45,120,0.6); }
+.add-cart-btn:disabled { opacity:.38; cursor:not-allowed; transform:none; box-shadow:none; }
+
+/* =============================================
+   CART SIDEBAR
+============================================= */
+#cart-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:900;
+  opacity:0; pointer-events:none; transition:opacity .3s;
+}
+#cart-overlay.open { opacity:1; pointer-events:all; }
+
+#cart-sidebar {
+  position:fixed; top:0; right:0; bottom:0; width:390px; max-width:100vw;
+  background:var(--bg-panel); border-left:1px solid var(--neon-cyan);
+  box-shadow:-8px 0 40px rgba(0,229,255,0.12); z-index:901;
+  transform:translateX(100%); transition:transform .3s cubic-bezier(.4,0,.2,1);
+  display:flex; flex-direction:column;
+}
+#cart-sidebar.open { transform:translateX(0); }
+
+.cart-header {
+  padding:18px 20px 14px; border-bottom:1px solid rgba(255,255,255,0.07);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.cart-header h2 { font-family:var(--font-title); font-size:1.5rem; letter-spacing:2px; color:var(--neon-cyan); text-shadow:0 0 8px var(--neon-cyan); }
+.close-btn {
+  background:none; border:1px solid rgba(255,255,255,0.12); color:var(--text-muted);
+  width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:1rem;
+  display:flex; align-items:center; justify-content:center; transition:all .2s;
+}
+.close-btn:hover { border-color:var(--neon-pink); color:var(--neon-pink); }
+
+.cart-items { flex:1; overflow-y:auto; padding:14px 20px; }
+.cart-item { display:flex; gap:12px; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.05); }
+.cart-item img { width:60px; height:60px; object-fit:cover; border-radius:6px; border:1px solid var(--border-glow); flex-shrink:0; }
+.cart-item-info { flex:1; }
+.cart-item-name { font-family:var(--font-deco); font-size:.92rem; margin-bottom:3px; }
+.cart-item-price { color:var(--neon-cyan); font-weight:600; font-size:.88rem; margin-bottom:8px; }
+.qty-controls { display:flex; align-items:center; gap:8px; }
+.qty-btn {
+  background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12);
+  color:var(--text-main); width:24px; height:24px; border-radius:4px; cursor:pointer;
+  font-size:.82rem; display:flex; align-items:center; justify-content:center; transition:all .2s;
+}
+.qty-btn:hover { border-color:var(--neon-cyan); color:var(--neon-cyan); }
+.qty-display { font-weight:600; min-width:18px; text-align:center; font-size:.9rem; }
+.cart-remove { background:none; border:none; color:rgba(255,45,120,0.45); cursor:pointer; font-size:.9rem; padding:4px; transition:color .2s; align-self:flex-start; }
+.cart-remove:hover { color:var(--neon-pink); }
+
+.cart-footer { padding:14px 20px; border-top:1px solid rgba(255,255,255,0.07); }
+.cart-row { display:flex; justify-content:space-between; font-size:.88rem; color:var(--text-muted); margin-bottom:7px; }
+.cart-total-row { display:flex; justify-content:space-between; font-family:var(--font-title); font-size:1.4rem; letter-spacing:1px; color:var(--neon-cyan); text-shadow:0 0 6px var(--neon-cyan); padding-top:8px; border-top:1px solid rgba(255,255,255,0.08); margin-bottom:14px; }
+.checkout-btn {
+  width:100%; padding:13px; background:linear-gradient(135deg,var(--neon-cyan),var(--neon-purple));
+  color:var(--bg-dark); border:none; border-radius:8px;
+  font-family:var(--font-title); font-size:1.15rem; letter-spacing:2px; cursor:pointer;
+  box-shadow:0 0 16px rgba(0,229,255,0.35); transition:all .2s;
+}
+.checkout-btn:hover { transform:translateY(-2px); box-shadow:0 0 24px rgba(0,229,255,0.6); }
+.empty-cart { text-align:center; padding:40px 20px; color:var(--text-muted); }
+.empty-cart .big-icon { font-size:2.8rem; margin-bottom:12px; opacity:.38; }
+
+/* =============================================
+   FORMS (shared)
+============================================= */
+.form-group { margin-bottom:14px; }
+.form-group label { display:block; font-size:.72rem; letter-spacing:2px; text-transform:uppercase; color:var(--text-muted); margin-bottom:5px; }
+.form-group input, .form-group select, .form-group textarea {
+  width:100%; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1);
+  color:var(--text-main); padding:10px 14px; border-radius:6px;
+  font-family:var(--font-body); font-size:.92rem; outline:none; transition:border-color .2s, box-shadow .2s;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  border-color:var(--neon-cyan); box-shadow:0 0 8px rgba(0,229,255,0.2);
+}
+.form-group select option { background:var(--bg-panel); }
+.form-group textarea { resize:vertical; min-height:80px; }
+
+/* =============================================
+   CHECKOUT MODAL
+============================================= */
+#modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.78); z-index:1100;
+  display:flex; align-items:center; justify-content:center; padding:20px;
+  opacity:0; pointer-events:none; transition:opacity .3s;
+}
+#modal-overlay.open { opacity:1; pointer-events:all; }
+.modal-box {
+  background:var(--bg-panel); border:1px solid var(--neon-cyan); border-radius:16px;
+  box-shadow:0 0 40px rgba(0,229,255,0.2); width:100%; max-width:520px;
+  max-height:90vh; overflow-y:auto; padding:28px;
+}
+.modal-title { font-family:var(--font-title); font-size:2rem; letter-spacing:3px; color:var(--neon-cyan); text-shadow:0 0 10px var(--neon-cyan); margin-bottom:22px; text-align:center; }
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+
+.payment-options { display:flex; flex-direction:column; gap:10px; margin-bottom:18px; }
+.payment-opt { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:13px; cursor:pointer; transition:all .2s; }
+.payment-opt.selected { border-color:var(--neon-cyan); background:rgba(0,229,255,0.06); box-shadow:0 0 8px rgba(0,229,255,0.2); }
+.payment-opt-title { font-family:var(--font-deco); font-size:.95rem; margin-bottom:3px; }
+.payment-opt-desc { font-size:.75rem; color:var(--text-muted); }
+.bank-info { background:rgba(0,229,255,0.05); border:1px solid rgba(0,229,255,0.2); border-radius:6px; padding:11px; font-size:.8rem; color:var(--neon-cyan); margin-top:8px; white-space:pre-line; display:none; }
+
+.modal-footer { display:flex; gap:12px; margin-top:18px; }
+.btn-secondary { flex:1; padding:12px; background:transparent; border:1px solid rgba(255,255,255,0.12); color:var(--text-muted); border-radius:6px; cursor:pointer; font-family:var(--font-deco); font-size:.95rem; transition:all .2s; }
+.btn-secondary:hover { border-color:var(--neon-pink); color:var(--neon-pink); }
+
+.success-msg { text-align:center; padding:18px; }
+.success-msg .big-e { font-size:2.8rem; margin-bottom:14px; }
+.success-msg h3 { font-family:var(--font-title); font-size:2rem; letter-spacing:2px; color:var(--neon-cyan); text-shadow:0 0 10px var(--neon-cyan); margin-bottom:8px; }
+.success-msg p { color:var(--text-muted); font-size:.88rem; line-height:1.7; }
+
+/* =============================================
+   CONTACT
+============================================= */
+.contact-grid { display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:start; }
+.contact-info h3 { font-family:var(--font-title); font-size:1.8rem; letter-spacing:2px; color:var(--neon-pink); text-shadow:0 0 10px var(--neon-pink); margin-bottom:14px; }
+.contact-info p { color:var(--text-muted); line-height:1.8; margin-bottom:18px; }
+.contact-detail { display:flex; align-items:center; gap:10px; margin-bottom:10px; color:var(--text-muted); font-size:.88rem; }
+.contact-form { background:var(--bg-card); border:1px solid var(--border-glow); border-radius:12px; padding:26px; }
+.btn-submit { width:100%; padding:13px; background:linear-gradient(135deg,var(--neon-pink),var(--neon-purple)); color:#fff; border:none; border-radius:6px; font-family:var(--font-title); font-size:1.1rem; letter-spacing:2px; cursor:pointer; box-shadow:0 0 14px rgba(255,45,120,0.35); transition:all .2s; }
+.btn-submit:hover { box-shadow:0 0 22px rgba(255,45,120,0.6); }
+
+/* =============================================
+   FOOTER
+============================================= */
+footer { border-top:1px solid var(--border-glow); padding:36px 24px; text-align:center; }
+.footer-logo-ecos { font-family:var(--font-marker); font-size:1.6rem; color:#fff; text-shadow:0 0 14px rgba(255,255,255,0.4); display:block; }
+.footer-logo-ayer { font-family:var(--font-script); font-size:1.4rem; color:var(--neon-cyan); text-shadow:0 0 12px var(--neon-cyan); display:block; }
+.footer-store { font-family:var(--font-title); font-size:.7rem; letter-spacing:5px; color:var(--neon-yellow); margin-bottom:16px; display:block; }
+footer p { font-size:.75rem; color:var(--text-muted); }
+.social-row { display:flex; gap:14px; justify-content:center; margin:14px 0; }
+.social-btn { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:var(--text-muted); width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; text-decoration:none; font-size:1rem; transition:all .2s; }
+.social-btn:hover { border-color:var(--neon-pink); color:var(--neon-pink); box-shadow:0 0 8px rgba(255,45,120,0.3); }
+
+/* =============================================
+   TOAST
+============================================= */
+#toast {
+  position:fixed; bottom:96px; left:50%; transform:translateX(-50%) translateY(10px);
+  background:var(--bg-panel); border:1px solid var(--neon-cyan); box-shadow:0 0 14px rgba(0,229,255,0.3);
+  color:var(--neon-cyan); padding:10px 22px; border-radius:30px;
+  font-family:var(--font-deco); font-size:.9rem; z-index:2000;
+  opacity:0; transition:opacity .3s, transform .3s; pointer-events:none; white-space:nowrap;
+}
+#toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* =============================================
+   TRACKLIST MODAL
+============================================= */
+#tracklist-modal {
+  position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:1200;
+  display:none; align-items:center; justify-content:center; padding:20px;
+}
+.tracklist-box {
+  background:var(--bg-panel); border:1px solid var(--neon-purple);
+  border-radius:12px; padding:22px; width:100%; max-width:380px;
+  box-shadow:0 0 24px rgba(200,0,255,0.2);
+}
+.tracklist-box h3 { font-family:var(--font-title); font-size:1.3rem; letter-spacing:2px; color:var(--neon-purple); text-shadow:0 0 8px var(--neon-purple); margin-bottom:14px; }
+.tracklist-scroll { max-height:280px; overflow-y:auto; }
+.tl-item {
+  display:flex; align-items:center; gap:10px; padding:9px 10px;
+  border-radius:6px; cursor:pointer; transition:background .15s; margin-bottom:2px;
+}
+.tl-item:hover { background:rgba(255,255,255,0.05); }
+.tl-item.active { background:rgba(200,0,255,0.1); }
+.tl-num { color:var(--text-muted); font-size:.75rem; width:18px; text-align:center; flex-shrink:0; }
+.tl-name { font-size:.85rem; flex:1; }
+.tl-no-url { font-size:.65rem; color:var(--neon-yellow); }
+
+/* =============================================
+   ADMIN PANEL
+============================================= */
+#admin-login-view, #admin-panel-view { display:none; }
+
+#admin-login {
+  min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+}
+.login-box {
+  background:var(--bg-card); border:1px solid var(--neon-purple); border-radius:16px;
+  box-shadow:0 0 30px rgba(200,0,255,0.22); padding:38px; width:100%; max-width:360px; text-align:center;
+}
+.login-box h2 { font-family:var(--font-title); font-size:1.9rem; letter-spacing:3px; color:var(--neon-purple); text-shadow:0 0 10px var(--neon-purple); margin-bottom:6px; }
+.login-box .sub { color:var(--text-muted); font-size:.82rem; margin-bottom:26px; }
+.login-box .form-group label { text-align:left; }
+.btn-login { width:100%; padding:12px; background:linear-gradient(135deg,var(--neon-purple),var(--neon-pink)); color:#fff; border:none; border-radius:6px; font-family:var(--font-title); font-size:1.1rem; letter-spacing:2px; cursor:pointer; box-shadow:0 0 14px rgba(200,0,255,0.35); transition:all .2s; margin-top:14px; }
+.btn-login:hover { box-shadow:0 0 22px rgba(200,0,255,0.6); }
+.login-error { color:var(--neon-pink); font-size:.8rem; margin-top:8px; display:none; }
+
+/* Admin layout */
+#admin-panel { max-width:1100px; margin:0 auto; padding:80px 24px 40px; }
+.admin-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; padding-bottom:18px; border-bottom:1px solid var(--border-glow); }
+.admin-title { font-family:var(--font-title); font-size:2rem; letter-spacing:3px; color:var(--neon-purple); text-shadow:0 0 10px var(--neon-purple); }
+
+.admin-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; }
+.admin-tab { background:transparent; border:1px solid rgba(255,255,255,0.1); color:var(--text-muted); padding:8px 18px; border-radius:6px; cursor:pointer; font-family:var(--font-deco); font-size:.88rem; letter-spacing:1px; transition:all .2s; }
+.admin-tab:hover, .admin-tab.active { border-color:var(--neon-purple); color:var(--neon-purple); background:rgba(200,0,255,0.08); }
+.admin-section { display:none; }
+.admin-section.active { display:block; }
+
+.admin-card { background:var(--bg-card); border:1px solid var(--border-glow); border-radius:12px; padding:22px; margin-bottom:22px; }
+.admin-card h3 { font-family:var(--font-title); font-size:1.25rem; letter-spacing:2px; color:var(--neon-cyan); text-shadow:0 0 6px var(--neon-cyan); margin-bottom:18px; }
+
+/* Buttons */
+.btn-save { background:linear-gradient(135deg,var(--neon-cyan),var(--neon-purple)); color:var(--bg-dark); border:none; padding:10px 22px; border-radius:6px; cursor:pointer; font-family:var(--font-deco); font-size:.9rem; letter-spacing:1px; box-shadow:0 0 12px rgba(0,229,255,0.3); transition:all .2s; }
+.btn-save:hover { box-shadow:0 0 20px rgba(0,229,255,0.5); }
+.btn-edit { background:rgba(0,229,255,0.08); border:1px solid var(--neon-cyan); color:var(--neon-cyan); padding:4px 10px; border-radius:4px; cursor:pointer; font-size:.72rem; transition:all .2s; }
+.btn-delete { background:rgba(255,45,120,0.08); border:1px solid var(--neon-pink); color:var(--neon-pink); padding:4px 10px; border-radius:4px; cursor:pointer; font-size:.72rem; transition:all .2s; }
+.btn-stock { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:var(--text-main); width:26px; height:26px; border-radius:4px; cursor:pointer; font-size:.9rem; display:flex; align-items:center; justify-content:center; transition:all .2s; }
+.btn-stock:hover { border-color:var(--neon-cyan); color:var(--neon-cyan); }
+
+/* Table */
+.products-table { width:100%; border-collapse:collapse; }
+.products-table th { text-align:left; font-size:.68rem; letter-spacing:2px; text-transform:uppercase; color:var(--text-muted); padding:8px 12px; border-bottom:1px solid rgba(255,255,255,0.07); }
+.products-table td { padding:10px 12px; border-bottom:1px solid rgba(255,255,255,0.04); font-size:.85rem; vertical-align:middle; }
+.products-table tr:hover td { background:rgba(255,255,255,0.02); }
+.table-img { width:46px; height:46px; object-fit:cover; border-radius:5px; border:1px solid var(--border-glow); }
+.stock-ctrl { display:flex; align-items:center; gap:5px; }
+.stock-val { min-width:26px; text-align:center; font-weight:600; }
+.table-actions { display:flex; gap:5px; flex-wrap:wrap; align-items:center; }
+
+/* Upload area */
+.upload-area {
+  border:2px dashed rgba(0,229,255,0.25); border-radius:8px; padding:20px;
+  text-align:center; cursor:pointer; transition:all .2s; margin-bottom:8px;
+  background:rgba(0,229,255,0.03);
+}
+.upload-area:hover, .upload-area.drag { border-color:var(--neon-cyan); background:rgba(0,229,255,0.07); }
+.upload-area p { font-size:.82rem; color:var(--text-muted); margin-top:6px; }
+.upload-area .upload-icon { font-size:1.8rem; }
+
+.img-preview { width:100%; max-height:180px; object-fit:contain; border-radius:6px; border:1px solid var(--border-glow); margin-top:8px; display:none; }
+
+/* Audio upload area */
+.audio-upload-area {
+  border:2px dashed rgba(200,0,255,0.25); border-radius:8px; padding:16px;
+  text-align:center; cursor:pointer; transition:all .2s;
+  background:rgba(200,0,255,0.03);
+}
+.audio-upload-area:hover { border-color:var(--neon-purple); background:rgba(200,0,255,0.07); }
+.audio-upload-area p { font-size:.78rem; color:var(--text-muted); margin-top:4px; }
+
+/* Progress bars for uploads */
+.upload-progress { width:100%; height:4px; background:rgba(255,255,255,0.08); border-radius:2px; margin-top:8px; display:none; overflow:hidden; }
+.upload-progress-fill { height:100%; background:linear-gradient(90deg,var(--neon-cyan),var(--neon-purple)); border-radius:2px; transition:width .3s; width:0%; }
+
+/* Music track list in admin */
+.music-item { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.05); }
+.music-item-info { flex:1; }
+.music-item-name { font-family:var(--font-deco); font-size:.92rem; }
+.music-item-url { font-size:.68rem; color:var(--text-muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:300px; }
+
+/* Settings */
+.settings-info { background:rgba(0,229,255,0.05); border:1px solid rgba(0,229,255,0.15); border-radius:6px; padding:12px; font-size:.78rem; color:var(--neon-cyan); margin-bottom:16px; line-height:1.6; }
+
+/* =============================================
+   RESPONSIVE
+============================================= */
+@media (max-width:768px) {
+  .nav-links { display:none; }
+  .contact-grid { grid-template-columns:1fr; }
+  .grid-2 { grid-template-columns:1fr; }
+  #music-player { width:240px; right:10px; bottom:10px; }
+  .hero-cats { gap:16px; }
+}
+@media (max-width:480px) {
+  #cart-sidebar { width:100vw; }
+  .modal-box { padding:18px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ========== NAVBAR ========== -->
+<nav id="navbar">
+  <a class="nav-logo" href="#" onclick="showView('store');return false;">
+    <span class="nav-logo-ecos">ECOS</span>
+    <span><span class="nav-logo-del">del </span><span class="nav-logo-ayer">Ayer</span></span>
+    <span class="nav-logo-store">— STORE —</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#productos">Galería</a></li>
+    <li><a href="#contacto">Contacto</a></li>
+  </ul>
+  <div class="nav-right">
+    <button id="cart-btn" onclick="toggleCart()">
+      🛒 <span id="cart-count">0</span>
+    </button>
+  </div>
+</nav>
+
+<!-- ========== MUSIC PLAYER ========== -->
+<div id="music-player">
+  <div class="player-header">
+    <div class="player-title">
+      <span class="cassette-reel" id="reel-icon">📼</span>
+      Ecos del Ayer
+    </div>
+    <button class="player-min-btn" onclick="togglePlayerMin()" id="min-btn">▼</button>
+  </div>
+  <div class="player-body">
+    <div class="player-viz" id="player-viz">
+      <!-- bars generated by JS -->
+    </div>
+    <div class="player-track" id="player-track-name">Sin pista seleccionada</div>
+    <div class="player-artist" id="player-track-artist">—</div>
+    <div class="player-progress-wrap" id="progress-wrap" onclick="seekAudio(event)">
+      <div class="player-progress-fill" id="progress-fill"></div>
+    </div>
+    <div class="player-time">
+      <span id="p-current">0:00</span>
+      <span id="p-duration">0:00</span>
+    </div>
+    <div class="player-controls">
+      <button class="p-btn" onclick="prevTrack()" title="Anterior">⏮</button>
+      <button class="p-btn play" id="play-btn" onclick="togglePlay()">▶</button>
+      <button class="p-btn" onclick="nextTrack()" title="Siguiente">⏭</button>
+      <button class="p-btn" onclick="toggleShuffle()" id="shuffle-btn" title="Aleatorio" style="font-size:.62rem;width:auto;padding:0 8px;border-radius:10px;">🔀</button>
+    </div>
+    <div class="player-vol">
+      <span>🔈</span>
+      <input type="range" id="vol-slider" min="0" max="1" step="0.05" value="0.7" oninput="setVolume(this.value)">
+      <span>🔊</span>
+    </div>
+    <button class="player-tracklist-btn" onclick="showTracklist()">☰ VER TRACKLIST</button>
+    <div class="player-error" id="player-error">⚠ No se pudo reproducir. Verificá la URL del audio.</div>
+  </div>
+</div>
+
+<audio id="audio-el" preload="metadata"></audio>
+
+<!-- TRACKLIST MODAL -->
+<div id="tracklist-modal">
+  <div class="tracklist-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3>TRACKLIST 🎵</h3>
+      <button onclick="closeTracklist()" class="close-btn">×</button>
+    </div>
+    <div class="tracklist-scroll" id="tracklist-body"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- ==========================================
+     STORE VIEW
+========================================== -->
+<div id="store-view">
+
+  <!-- HERO -->
+  <section id="hero">
+    <div class="hero-ring"></div>
+    <p class="hero-eyebrow">✦ Recuerdos que inspiran · Productos que encantan ✦</p>
+    <div class="hero-logo-wrap">
+      <span class="hero-ecos">ECOS</span>
+      <div><span class="hero-del">del </span><span class="hero-ayer">Ayer</span></div>
+      <div class="hero-accent"></div>
+      <span class="hero-store">— STORE —</span>
+    </div>
+    <div class="hero-cats">
+      <div class="hero-cat-item">
+        <div class="hero-cat-icon" style="border-color:var(--neon-pink);color:var(--neon-pink);">🖼</div>
+        <span class="hero-cat-label" style="color:var(--neon-pink);">Cuadros</span>
+      </div>
+      <div class="hero-cat-item">
+        <div class="hero-cat-icon" style="border-color:var(--neon-cyan);color:var(--neon-cyan);">👕</div>
+        <span class="hero-cat-label" style="color:var(--neon-cyan);">Remeras</span>
+      </div>
+      <div class="hero-cat-item">
+        <div class="hero-cat-icon" style="border-color:var(--neon-purple);color:var(--neon-purple);">🎧</div>
+        <span class="hero-cat-label" style="color:var(--neon-purple);">Auriculares</span>
+      </div>
+      <div class="hero-cat-item">
+        <div class="hero-cat-icon" style="border-color:var(--neon-yellow);color:var(--neon-yellow);">⌨</div>
+        <span class="hero-cat-label" style="color:var(--neon-yellow);">Teclados</span>
+      </div>
+      <div class="hero-cat-item">
+        <div class="hero-cat-icon" style="border-color:var(--neon-blue);color:var(--neon-blue);">📺</div>
+        <span class="hero-cat-label" style="color:var(--neon-blue);">TV Box</span>
+      </div>
+    </div>
+    <a class="btn-primary" href="#productos">VER GALERÍA →</a>
+  </section>
+
+  <!-- PRODUCTS -->
+  <section id="productos" class="section">
+    <div class="section-header">
+      <span class="section-label">✦ Colección ✦</span>
+      <h2 class="section-title">La <span>Galería</span></h2>
+    </div>
+    <div id="filters">
+      <button class="filter-btn active" onclick="filterProds('todos',this)">Todos</button>
+      <button class="filter-btn" onclick="filterProds('Cuadros',this)">🖼 Cuadros</button>
+      <button class="filter-btn" onclick="filterProds('Remeras',this)">👕 Remeras</button>
+      <button class="filter-btn" onclick="filterProds('Auriculares',this)">🎧 Auriculares</button>
+      <button class="filter-btn" onclick="filterProds('Teclados',this)">⌨ Teclados</button>
+      <button class="filter-btn" onclick="filterProds('TV Box',this)">📺 TV Box</button>
+    </div>
+    <div id="products-grid"></div>
+  </section>
+
+  <!-- CONTACT -->
+  <section id="contacto" class="section" style="padding-top:30px;">
+    <div class="section-header">
+      <span class="section-label">✦ Escribinos ✦</span>
+      <h2 class="section-title"><span>Contacto</span></h2>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-info">
+        <h3>¿Tenés alguna consulta?</h3>
+        <p>Escribinos por pedidos personalizados, disponibilidad de stock, envíos o cualquier duda. ¡Te respondemos a la brevedad!</p>
+        <div class="contact-detail"><span>📧</span><span id="display-email">ecosdelayer@email.com</span></div>
+        <div class="contact-detail"><span>📱</span><span id="display-social">Instagram / TikTok: @ecosdelayer</span></div>
+        <div class="contact-detail"><span>🕐</span><span>Respondemos en menos de 24hs</span></div>
+      </div>
+      <div class="contact-form">
+        <div class="form-group"><label>Tu nombre</label><input type="text" id="c-name" placeholder="Ej: Juan García"></div>
+        <div class="form-group"><label>Tu correo</label><input type="email" id="c-email" placeholder="tu@correo.com"></div>
+        <div class="form-group"><label>Asunto</label><input type="text" id="c-subject" placeholder="Ej: Consulta sobre stock"></div>
+        <div class="form-group"><label>Mensaje</label><textarea id="c-message" rows="4" placeholder="Tu mensaje..."></textarea></div>
+        <button class="btn-submit" onclick="sendContact()">ENVIAR MENSAJE ✉</button>
+        <div id="contact-ok" style="display:none;margin-top:12px;padding:11px;background:rgba(0,229,255,0.07);border:1px solid var(--neon-cyan);border-radius:6px;color:var(--neon-cyan);font-family:var(--font-deco);text-align:center;">
+          ✔ ¡Mensaje enviado! Te contactamos pronto 🎸
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span class="footer-logo-ecos">ECOS</span>
+    <span class="footer-logo-ayer">del Ayer</span>
+    <span class="footer-store">— STORE —</span>
+    <div class="social-row">
+      <a class="social-btn" id="social-ig" href="#" title="Instagram" target="_blank" rel="noopener" style="display:none;">📸</a>
+      <a class="social-btn" id="social-tk" href="#" title="TikTok" target="_blank" rel="noopener" style="display:none;">🎵</a>
+    </div>
+    <p>© 2025 Ecos del Ayer Store — Todos los derechos reservados</p>
+  </footer>
+</div>
+
+<!-- CART -->
+<div id="cart-overlay" onclick="toggleCart()"></div>
+<div id="cart-sidebar">
+  <div class="cart-header">
+    <h2>CARRITO 🛒</h2>
+    <button class="close-btn" onclick="toggleCart()">×</button>
+  </div>
+  <div class="cart-items" id="cart-items-wrap"></div>
+  <div class="cart-footer">
+    <div class="cart-row"><span>Subtotal</span><span id="cart-sub">$0</span></div>
+    <div class="cart-row"><span>Envío</span><span style="color:var(--neon-cyan);">A consultar</span></div>
+    <div class="cart-total-row"><span>TOTAL</span><span id="cart-tot">$0</span></div>
+    <button class="checkout-btn" onclick="openCheckout()">PROCEDER AL PAGO →</button>
+  </div>
+</div>
+
+<!-- CHECKOUT MODAL -->
+<div id="modal-overlay">
+  <div class="modal-box">
+    <h2 class="modal-title">DATOS DE ENVÍO</h2>
+    <div id="checkout-form-wrap">
+      <div class="grid-2">
+        <div class="form-group"><label>Nombre completo</label><input type="text" id="ch-name" placeholder="Tu nombre"></div>
+        <div class="form-group"><label>Teléfono</label><input type="text" id="ch-phone" placeholder="+54 11 ..."></div>
+      </div>
+      <div class="form-group"><label>Email</label><input type="email" id="ch-email" placeholder="tu@correo.com"></div>
+      <div class="form-group"><label>Dirección de envío</label><input type="text" id="ch-addr" placeholder="Calle, número, localidad"></div>
+      <div class="form-group">
+        <label>Medio de pago</label>
+        <div class="payment-options">
+          <div class="payment-opt selected" id="pay-transfer" onclick="selPay('transfer')">
+            <div class="payment-opt-title">💳 Transferencia / Depósito</div>
+            <div class="payment-opt-desc">Transferí el total y envianos el comprobante</div>
+            <div class="bank-info" id="bank-info-box" style="display:block;">CBU: 0000000000000000000001&#10;Alias: ECOS.DEL.AYER&#10;Titular: Ecos del Ayer Store</div>
+          </div>
+          <div class="payment-opt" id="pay-efectivo" onclick="selPay('efectivo')">
+            <div class="payment-opt-title">💵 Efectivo</div>
+            <div class="payment-opt-desc">Acordamos entrega y pago al momento de la recepción</div>
+          </div>
+          <div class="payment-opt" id="pay-mp" onclick="selPay('mp')">
+            <div class="payment-opt-title">📲 MercadoPago / PayPal</div>
+            <div class="payment-opt-desc">Serás redirigido al link de pago seguro</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal()">CANCELAR</button>
+        <button class="btn-primary" style="flex:2;padding:12px;" onclick="confirmOrder()">CONFIRMAR PEDIDO ✓</button>
+      </div>
+    </div>
+    <div id="order-ok" class="success-msg" style="display:none;">
+      <div class="big-e">🎉</div>
+      <h3>¡PEDIDO RECIBIDO!</h3>
+      <p>Se abrió WhatsApp con el detalle completo de tu pedido. Enviá el mensaje para confirmarlo y coordinar el pago y envío.<br><br>
+      <span style="color:#00e676;">Si no se abrió automáticamente, revisá que tu navegador permita ventanas emergentes.</span><br><br>
+      <span style="color:var(--neon-cyan);">¡Gracias por elegirnos! 🎸</span></p>
+      <button class="btn-primary" style="margin-top:18px;" onclick="closeModal();clearCart();">VOLVER A LA TIENDA</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     ADMIN LOGIN VIEW
+========================================== -->
+<div id="admin-login-view">
+  <div id="admin-login">
+    <div class="login-box">
+      <h2>ADMIN PANEL</h2>
+      <p class="sub">Acceso exclusivo — Ecos del Ayer Store</p>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="admin-user" placeholder="tu@email.com" autocomplete="off" onkeydown="if(event.key==='Enter')document.getElementById('admin-pass').focus()">
+      </div>
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="admin-pass" placeholder="••••••••" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <p id="login-err" class="login-error">❌ Email o contraseña incorrectos</p>
+      <button class="btn-login" onclick="doLogin()">INGRESAR →</button>
+      <br>
+      <button onclick="showView('store')" style="margin-top:12px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.78rem;">← Volver a la tienda</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     ADMIN PANEL VIEW
+========================================== -->
+<div id="admin-panel-view">
+  <nav id="navbar" style="position:fixed;">
+    <div class="nav-logo" style="cursor:default;">
+      <span class="nav-logo-ecos" style="font-size:1.1rem;">⚙ ADMIN</span>
+      <span class="nav-logo-store">Ecos del Ayer Store</span>
+    </div>
+    <div class="nav-right">
+      <button onclick="showView('store')" style="background:none;border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);padding:6px 14px;border-radius:4px;cursor:pointer;font-size:.78rem;">Ver Tienda →</button>
+      <button onclick="doLogout()" style="background:none;border:1px solid rgba(255,45,120,0.3);color:var(--neon-pink);padding:6px 14px;border-radius:4px;cursor:pointer;font-size:.78rem;">Salir</button>
+    </div>
+  </nav>
+
+  <div id="admin-panel">
+    <div class="admin-hdr">
+      <h1 class="admin-title">PANEL DE CONTROL</h1>
+      <span id="admin-stats" style="font-size:.8rem;color:var(--text-muted);"></span>
+    </div>
+
+    <div class="admin-tabs">
+      <button class="admin-tab active" onclick="aTab('products',this)">📦 Productos</button>
+      <button class="admin-tab" onclick="aTab('add',this)">➕ Agregar/Editar</button>
+      <button class="admin-tab" onclick="aTab('music',this)">🎵 Música</button>
+      <button class="admin-tab" onclick="aTab('settings',this)">⚙ Config</button>
+    </div>
+
+    <!-- PRODUCTS TAB -->
+    <div id="tab-products" class="admin-section active">
+      <div class="admin-card">
+        <h3>📦 INVENTARIO</h3>
+        <div style="overflow-x:auto;">
+          <table class="products-table">
+            <thead>
+              <tr>
+                <th>Imagen</th><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="admin-prod-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADD/EDIT TAB -->
+    <div id="tab-add" class="admin-section">
+      <div class="admin-card">
+        <h3 id="add-form-title">➕ AGREGAR PRODUCTO</h3>
+        <input type="hidden" id="edit-id">
+        <div class="grid-2">
+          <div class="form-group"><label>Título del producto *</label><input type="text" id="p-title" placeholder="Ej: Cuadro Freddie Mercury"></div>
+          <div class="form-group">
+            <label>Categoría *</label>
+            <select id="p-cat">
+              <option value="Cuadros">🖼 Cuadros</option>
+              <option value="Remeras">👕 Remeras</option>
+              <option value="Auriculares">🎧 Auriculares</option>
+              <option value="Teclados">⌨ Teclados</option>
+              <option value="TV Box">📺 TV Box</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Precio ($) *</label><input type="number" id="p-price" placeholder="Ej: 12500" min="0"></div>
+          <div class="form-group"><label>Stock disponible *</label><input type="number" id="p-stock" placeholder="Ej: 10" min="0"></div>
+        </div>
+        <div class="form-group"><label>Descripción / Dimensiones</label><input type="text" id="p-dims" placeholder="Ej: 40×60 cm · Con marco negro"></div>
+
+        <!-- IMAGE — file upload OR URL -->
+        <div class="form-group">
+          <label>Imagen del producto *</label>
+          <div style="display:flex;gap:10px;margin-bottom:8px;">
+            <button onclick="setImgMode('file')" id="img-mode-file" style="flex:1;padding:7px;border-radius:5px;cursor:pointer;border:1px solid var(--neon-cyan);background:rgba(0,229,255,0.08);color:var(--neon-cyan);font-family:var(--font-deco);font-size:.82rem;">📁 Subir archivo</button>
+            <button onclick="setImgMode('url')"  id="img-mode-url"  style="flex:1;padding:7px;border-radius:5px;cursor:pointer;border:1px solid rgba(255,255,255,0.12);background:transparent;color:var(--text-muted);font-family:var(--font-deco);font-size:.82rem;">🔗 Pegar URL</button>
+          </div>
+
+          <!-- File upload -->
+          <div id="img-file-zone">
+            <div class="upload-area" id="img-drop-area" onclick="document.getElementById('img-file-input').click()" ondragover="dragOver(event,'img-drop-area')" ondragleave="dragLeave('img-drop-area')" ondrop="dropFile(event,'img')">
+              <div class="upload-icon">🖼️</div>
+              <p>Hacé clic o arrastrá una imagen aquí<br><span style="font-size:.7rem;">(JPG, PNG, WEBP · Máx. ~500KB recomendado)</span></p>
+            </div>
+            <input type="file" id="img-file-input" accept="image/*" style="display:none;" onchange="handleImgFile(this.files[0])">
+            <div class="upload-progress" id="img-progress"><div class="upload-progress-fill" id="img-progress-fill"></div></div>
+            <img id="img-preview" class="img-preview" alt="Preview">
+          </div>
+
+          <!-- URL input -->
+          <div id="img-url-zone" style="display:none;">
+            <input type="text" id="p-img-url" placeholder="https://... (URL directa de la imagen)" oninput="previewUrl()">
+            <img id="img-url-preview" class="img-preview" alt="Preview">
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;margin-top:10px;">
+          <button class="btn-save" onclick="saveProduct()">💾 GUARDAR PRODUCTO</button>
+          <button class="btn-secondary" style="padding:10px 20px;border-radius:6px;cursor:pointer;" onclick="cancelEdit()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MUSIC TAB -->
+    <div id="tab-music" class="admin-section">
+      <div class="admin-card">
+        <h3>➕ AGREGAR PISTA</h3>
+        <div class="settings-info">
+          💡 <strong>Cómo subir tu música:</strong><br>
+          1. Subí el MP3 a tu Google Drive<br>
+          2. Clic derecho → <strong>Compartir</strong> → cambiá el acceso a <strong>"Cualquier usuario con el enlace"</strong><br>
+          3. Copiá ese link y pegalo abajo tal cual te lo da Google Drive — <strong>la tienda lo convierte sola</strong> al formato reproducible, no necesitás ninguna herramienta externa.
+        </div>
+        <div class="form-group"><label>Nombre de la pista *</label><input type="text" id="m-name" placeholder="Ej: Hotel California — Eagles"></div>
+        <div class="form-group"><label>Artista</label><input type="text" id="m-artist" placeholder="Ej: Eagles"></div>
+
+        <div style="display:flex;gap:10px;margin-bottom:10px;">
+          <button onclick="setAudioMode('file')" id="aud-mode-file" style="flex:1;padding:7px;border-radius:5px;cursor:pointer;border:1px solid rgba(255,255,255,0.12);background:transparent;color:var(--text-muted);font-family:var(--font-deco);font-size:.82rem;">📁 Subir MP3 (solo demo local)</button>
+          <button onclick="setAudioMode('url')"  id="aud-mode-url"  style="flex:1;padding:7px;border-radius:5px;cursor:pointer;border:1px solid var(--neon-purple);background:rgba(200,0,255,0.08);color:var(--neon-purple);font-family:var(--font-deco);font-size:.82rem;">🔗 Pegar link de Google Drive</button>
+        </div>
+
+        <div id="aud-file-zone" style="display:none;">
+          <div class="audio-upload-area" onclick="document.getElementById('aud-file-input').click()" ondragover="dragOver(event,'aud-file-zone')" ondrop="dropFile(event,'audio')">
+            <div style="font-size:1.8rem;">🎵</div>
+            <p>Hacé clic o arrastrá un archivo de audio<br><span style="font-size:.7rem;">(MP3, OGG, WAV)</span></p>
+          </div>
+          <input type="file" id="aud-file-input" accept="audio/*" style="display:none;" onchange="handleAudioFile(this.files[0])">
+          <div class="upload-progress" id="aud-progress"><div class="upload-progress-fill" id="aud-progress-fill"></div></div>
+          <div id="aud-file-name" style="font-size:.75rem;color:var(--neon-purple);margin-top:6px;display:none;"></div>
+        </div>
+        <div id="aud-url-zone">
+          <div class="form-group" style="margin:0;">
+            <label>Link de Google Drive (o cualquier URL directa de audio)</label>
+            <input type="text" id="m-url" placeholder="https://drive.google.com/file/d/.../view?usp=sharing">
+          </div>
+        </div>
+
+        <button class="btn-save" style="margin-top:12px;" onclick="addTrack()">💾 AGREGAR AL TRACKLIST</button>
+      </div>
+
+      <div class="admin-card">
+        <h3>🎵 TRACKLIST ACTUAL</h3>
+        <div id="admin-music-list"></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS TAB -->
+    <div id="tab-settings" class="admin-section">
+      <div class="admin-card" style="border-color:rgba(0,230,118,0.3);">
+        <h3 style="color:#00e676;text-shadow:0 0 6px #00e676;">📲 WHATSAPP — Recepción de Pedidos</h3>
+        <div class="settings-info" style="background:rgba(0,230,118,0.06);border-color:rgba(0,230,118,0.2);color:#00e676;">
+          Este número recibe dos cosas: 1) el <strong>pedido completo</strong> cuando un cliente compra (productos, cantidades, total y sus datos), y 2) las <strong>consultas</strong> que escriban en el formulario de Contacto.
+        </div>
+        <div class="form-group">
+          <label>Tu número de WhatsApp (con código de país, sin espacios ni +)</label>
+          <input type="text" id="s-whatsapp" placeholder="Ej: 5491122334455">
+        </div>
+      </div>
+      <div class="admin-card">
+        <h3>⚙ CONFIGURACIÓN GENERAL</h3>
+        <div class="grid-2">
+          <div class="form-group"><label>Email de contacto visible</label><input type="text" id="s-email" placeholder="tu@email.com"></div>
+          <div class="form-group"><label>Link fijo de MercadoPago / PayPal</label><input type="text" id="s-mp" placeholder="https://mpago.la/..."></div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group"><label>Link de Instagram</label><input type="text" id="s-instagram" placeholder="https://instagram.com/ecosdelayer"></div>
+          <div class="form-group"><label>Link de TikTok</label><input type="text" id="s-tiktok" placeholder="https://tiktok.com/@ecosdelayer"></div>
+        </div>
+        <div class="settings-info">
+          💡 El link de MercadoPago es <strong>fijo</strong> (no calcula el monto automáticamente). El cliente lo va a usar como referencia y vos confirmás el cobro manualmente al recibir el pedido por WhatsApp.
+        </div>
+        <div class="form-group"><label>Datos bancarios (transferencia)</label><textarea id="s-bank" rows="3" placeholder="CBU: ...&#10;Alias: ...&#10;Titular: ..."></textarea></div>
+        <div class="admin-card" style="margin:0;border-color:rgba(0,229,255,0.1);">
+          <h3 style="font-size:1rem;margin-bottom:12px;">📧 EmailJS (envío de contacto gratuito)</h3>
+          <div class="settings-info">Registrate gratis en <strong>emailjs.com</strong>, creá un servicio y template, y pegá los datos aquí.</div>
+          <div class="grid-2">
+            <div class="form-group"><label>Public Key</label><input type="text" id="s-ejs-pub" placeholder="tu_public_key"></div>
+            <div class="form-group"><label>Service ID</label><input type="text" id="s-ejs-svc" placeholder="service_xxxxxxx"></div>
+            <div class="form-group"><label>Template ID</label><input type="text" id="s-ejs-tpl" placeholder="template_xxxxxxx"></div>
+            <div class="form-group"><label>Email administrador</label><input type="text" id="s-admin-email" placeholder="admin@email.com"></div>
+          </div>
+        </div>
+
+        <div class="admin-card" style="margin:0;border-color:rgba(200,0,255,0.25);">
+          <h3 style="color:var(--neon-purple);font-size:1rem;margin-bottom:12px;">🔐 ACCESO AL PANEL ADMIN</h3>
+          <div class="settings-info" style="background:rgba(200,0,255,0.05);border-color:rgba(200,0,255,0.2);color:var(--neon-purple);">
+            El acceso ahora usa <strong>Firebase Authentication</strong> (más seguro). Para agregar o quitar personas que pueden administrar la tienda, entrá a tu <strong>Firebase Console → Authentication → Users</strong>.
+          </div>
+          <button class="btn-save" onclick="resetMyPassword()">✉ ENVIARME UN LINK PARA CAMBIAR MI CONTRASEÑA</button>
+        </div>
+        <button class="btn-save" onclick="saveSettings()">💾 GUARDAR CONFIGURACIÓN</button>
+      </div>
+    </div>
+  </div><!-- /admin-panel -->
+</div><!-- /admin-panel-view -->
+
+<!-- =============================================
+     JAVASCRIPT
+============================================= -->
+<script>
+'use strict';
+
+// ============================================================
+//  🔥 CONFIGURACIÓN DE FIREBASE — PEGÁ TUS DATOS ACÁ
+//  Los sacás de: Firebase Console → ⚙ Configuración del proyecto
+//  → "Tus apps" → app web → "Config"
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyDo_jeZ25qCvhKjh6oc6XziXmKDPa_rrLc",
+  authDomain: "ecosdelayer-cd396.firebaseapp.com",
+  projectId: "ecosdelayer-cd396",
+  storageBucket: "ecosdelayer-cd396.firebasestorage.app",
+  messagingSenderId: "423841633142",
+  appId: "1:423841633142:web:761cf322352431e0596057",
+  measurementId: "G-MD9HPRTZLQ"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const FIREBASE_READY = firebaseConfig.apiKey !== "AIzaSyDo_jeZ25qCvhKjh6oc6XziXmKDPa_rrLc";
+
+let fbApp, db, fbAuth;
+if (FIREBASE_READY) {
+  fbApp  = firebase.initializeApp(firebaseConfig);
+  db     = firebase.firestore();
+  fbAuth = firebase.auth();
+} else {
+  console.warn('⚠ Firebase no está configurado todavía. La tienda funciona en modo demo local (LocalStorage). Mirá el README para conectar Firebase.');
+}
+
+// ============================================================
+//  STATE
+// ============================================================
+let products = [];
+let cart = [];
+let tracks = [];
+let settings = {};
+let activeFilter = 'todos';
+let activePay = 'transfer';
+let currentIdx = 0;
+let isPlaying = false;
+let isShuffle = false;
+let imgMode = 'file';   // 'file' | 'url'
+let audMode = 'url';    // 'file' | 'url'  — con Firebase recomendamos URL para música
+let pendingAudioBlob = null;  // base64 para audio subido (solo modo demo local)
+let pendingImgData = null;    // base64 para imagen subida
+let isAdminLoggedIn = false;
+
+const DEFAULT_PASS = 'admin1234';
+const audio = document.getElementById('audio-el');
+
+// ============================================================
+//  LOCALSTORAGE HELPERS — fallback cuando Firebase no está configurado
+// ============================================================
+const ls  = k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
+const lsS = (k,v) => localStorage.setItem(k, JSON.stringify(v));
+
+// ============================================================
+//  DATA LAYER — Firestore (en vivo) o LocalStorage (demo local)
+// ============================================================
+// Aplica los datos de configuración (email, redes, banco) a la vitrina pública
+function applySettingsToStorefront() {
+  document.getElementById('display-email').textContent = settings.email || 'ecosdelayer@email.com';
+  document.getElementById('bank-info-box').textContent = settings.bankInfo || '';
+
+  // Instagram / TikTok
+  const igEl = document.getElementById('social-ig');
+  const tkEl = document.getElementById('social-tk');
+  if (settings.instagram) { igEl.href = settings.instagram; igEl.style.display = 'flex'; }
+  else { igEl.style.display = 'none'; }
+  if (settings.tiktok) { tkEl.href = settings.tiktok; tkEl.style.display = 'flex'; }
+  else { tkEl.style.display = 'none'; }
+
+  const socialText = document.getElementById('display-social');
+  const handles = [];
+  if (settings.instagram) handles.push('Instagram');
+  if (settings.tiktok) handles.push('TikTok');
+  socialText.textContent = handles.length ? handles.join(' / ') : 'Seguinos en redes (próximamente)';
+}
+
+function loadData() {
+  if (FIREBASE_READY) {
+    // Productos en tiempo real
+    db.collection('products').orderBy('id').onSnapshot(snap => {
+      products = snap.docs.map(d => d.data());
+      renderProducts(activeFilter);
+      if (isAdminLoggedIn) { renderAdminTable(); }
+    }, err => console.error('Firestore products error:', err));
+
+    // Música en tiempo real
+    db.collection('tracks').orderBy('id').onSnapshot(snap => {
+      tracks = snap.docs.map(d => d.data());
+      if (isAdminLoggedIn) { renderAdminMusic(); }
+      if (!audio.src && tracks.length) loadTrack(0);
+    }, err => console.error('Firestore tracks error:', err));
+
+    // Configuración en tiempo real
+    db.collection('settings').doc('main').onSnapshot(doc => {
+      settings = doc.exists ? doc.data() : defaultSettings();
+      applySettingsToStorefront();
+      if (isAdminLoggedIn) loadSettingsForm();
+    }, err => console.error('Firestore settings error:', err));
+
+    // Si la colección está vacía (primera vez), la sembramos con datos de ejemplo
+    db.collection('products').limit(1).get().then(snap => {
+      if (snap.empty) defaultProducts().forEach(p => db.collection('products').doc(String(p.id)).set(p));
+    });
+    db.collection('tracks').limit(1).get().then(snap => {
+      if (snap.empty) defaultTracks().forEach(t => db.collection('tracks').doc(String(t.id)).set(t));
+    });
+    db.collection('settings').doc('main').get().then(doc => {
+      if (!doc.exists) db.collection('settings').doc('main').set(defaultSettings());
+    });
+  } else {
+    // Modo demo local (sin Firebase configurado)
+    products = ls('eda_products') || defaultProducts();
+    tracks   = ls('eda_tracks')   || defaultTracks();
+    settings = ls('eda_settings') || defaultSettings();
+  }
+}
+
+// Guarda/actualiza UN producto (Firestore o LocalStorage)
+function persistProduct(p) {
+  if (FIREBASE_READY) {
+    return db.collection('products').doc(String(p.id)).set(p);
+  } else {
+    const idx = products.findIndex(x => x.id === p.id);
+    if (idx >= 0) products[idx] = p; else products.push(p);
+    lsS('eda_products', products);
+    return Promise.resolve();
+  }
+}
+function removeProductRemote(id) {
+  if (FIREBASE_READY) {
+    return db.collection('products').doc(String(id)).delete();
+  } else {
+    products = products.filter(p => p.id !== id);
+    lsS('eda_products', products);
+    return Promise.resolve();
+  }
+}
+function persistTrack(t) {
+  if (FIREBASE_READY) {
+    return db.collection('tracks').doc(String(t.id)).set(t);
+  } else {
+    const idx = tracks.findIndex(x => x.id === t.id);
+    if (idx >= 0) tracks[idx] = t; else tracks.push(t);
+    lsS('eda_tracks', tracks);
+    return Promise.resolve();
+  }
+}
+function removeTrackRemote(id) {
+  if (FIREBASE_READY) {
+    return db.collection('tracks').doc(String(id)).delete();
+  } else {
+    tracks = tracks.filter(t => t.id !== id);
+    lsS('eda_tracks', tracks);
+    return Promise.resolve();
+  }
+}
+function persistSettings() {
+  if (FIREBASE_READY) {
+    return db.collection('settings').doc('main').set(settings, { merge: true });
+  } else {
+    lsS('eda_settings', settings);
+    return Promise.resolve();
+  }
+}
+
+// ============================================================
+//  DEFAULTS
+// ============================================================
+function defaultProducts() {
+  return [
+    {id:1,title:'Cuadro "I Love 80s"',       category:'Cuadros',     price:9500,  stock:6,  img:'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=500&q=80', dims:'40×60 cm · Sin marco'},
+    {id:2,title:'Remera Back to the 80s',     category:'Remeras',     price:5200,  stock:10, img:'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=500&q=80', dims:'Talle M / L / XL'},
+    {id:3,title:'Auriculares Retro RGB',       category:'Auriculares', price:18900, stock:4,  img:'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=500&q=80', dims:'Bluetooth 5.0 · 30hs batería'},
+    {id:4,title:'Teclado Mecánico RGB',        category:'Teclados',    price:23500, stock:3,  img:'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=500&q=80', dims:'TKL · Switches Blue'},
+    {id:5,title:'TV Box 4K Android',           category:'TV Box',      price:14800, stock:8,  img:'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=500&q=80', dims:'Android 11 · 4GB RAM · WiFi 6'},
+    {id:6,title:'Cuadro Atardecer Synthwave',  category:'Cuadros',     price:8200,  stock:0,  img:'https://images.unsplash.com/photo-1517021897933-0e0319cfbc28?w=500&q=80', dims:'30×40 cm · Con marco negro'},
+  ];
+}
+function defaultTracks() {
+  return [
+    {id:1, name:'Synthwave Dreams',    artist:'Various Artists', url:'', blob:false},
+    {id:2, name:'Neon Nights Mixtape', artist:'80s Collection',  url:'', blob:false},
+  ];
+}
+function defaultSettings() {
+  return {
+    email:'ecosdelayer@email.com', whatsapp:'', mpLink:'', bankInfo:'CBU: 0000000000000000000001\nAlias: ECOS.DEL.AYER\nTitular: Ecos del Ayer Store',
+    instagram:'', tiktok:'',
+    ejsPub:'', ejsSvc:'', ejsTpl:'', adminEmail:'', adminUser:'admin', adminPass: DEFAULT_PASS,
+  };
+}
+
+// ============================================================
+//  VIEW ROUTING
+// ============================================================
+function showView(view) {
+  document.getElementById('store-view').style.display        = view==='store'       ? 'block' : 'none';
+  document.getElementById('admin-login-view').style.display  = view==='adminLogin'  ? 'block' : 'none';
+  document.getElementById('admin-panel-view').style.display  = view==='admin'       ? 'block' : 'none';
+  document.getElementById('music-player').style.display      = view==='store'       ? 'block' : 'none';
+  if (view==='admin') { renderAdminTable(); renderAdminMusic(); loadSettingsForm(); updateAdminStats(); }
+}
+
+// ============================================================
+//  PRODUCTS — render
+// ============================================================
+function renderProducts(filter) {
+  const grid = document.getElementById('products-grid');
+  const list = filter==='todos' ? products : products.filter(p=>p.category===filter);
+  if (!list.length) {
+    grid.innerHTML='<p style="color:var(--text-muted);text-align:center;grid-column:1/-1;padding:40px;">No hay productos en esta categoría.</p>';
+    return;
+  }
+  grid.innerHTML = list.map(p => {
+    const inCart = cart.find(c=>c.id===p.id);
+    const sc = p.stock===0 ? 'background:rgba(255,45,120,0.18);color:var(--neon-pink)' :
+               p.stock<=3  ? 'background:rgba(255,184,0,0.18);color:var(--neon-yellow)' :
+                             'background:rgba(0,229,255,0.14);color:var(--neon-cyan)';
+    return `
+      <div class="product-card">
+        <div class="product-img-wrap">
+          <img src="${p.img}" alt="${p.title}" loading="lazy"
+               onerror="this.src='https://via.placeholder.com/400x300/0e0e22/00e5ff?text=Ecos+del+Ayer'">
+          ${p.stock>0&&p.stock<=3?`<span class="product-badge">¡Últimas ${p.stock}!</span>`:''}
+          ${p.stock===0?`<span class="product-badge" style="background:rgba(80,80,80,0.85);">Agotado</span>`:''}
+          <span class="product-stock-badge" style="${sc}">${p.stock===0?'Sin stock':`Stock: ${p.stock}`}</span>
+        </div>
+        <div class="product-body">
+          <p class="product-cat">${p.category}</p>
+          <h3 class="product-name">${p.title}</h3>
+          <p class="product-dims">${p.dims||''}</p>
+          <div class="product-footer">
+            <span class="product-price">$${p.price.toLocaleString('es-AR')}</span>
+            <button class="add-cart-btn" onclick="addToCart(${p.id})" ${p.stock===0?'disabled':''}>
+              ${p.stock===0?'AGOTADO': inCart?'✓ EN CARRITO':'+ CARRITO'}
+            </button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function filterProds(f, btn) {
+  activeFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderProducts(f);
+}
+
+// ============================================================
+//  CART
+// ============================================================
+function addToCart(id) {
+  const p = products.find(x=>x.id===id);
+  if (!p || p.stock===0) return;
+  const ex = cart.find(c=>c.id===id);
+  if (ex) {
+    if (ex.qty>=p.stock) { toast('⚠ No hay más stock disponible'); return; }
+    ex.qty++;
+  } else { cart.push({...p, qty:1}); }
+  updateCartUI(); renderProducts(activeFilter);
+  toast(`✓ "${p.title}" añadido al carrito`);
+}
+function removeFromCart(id) { cart=cart.filter(c=>c.id!==id); updateCartUI(); renderProducts(activeFilter); }
+function updateQty(id,d) {
+  const item=cart.find(c=>c.id===id); if(!item) return;
+  const p=products.find(x=>x.id===id);
+  const nq=item.qty+d;
+  if (nq<1) { removeFromCart(id); return; }
+  if (nq>p.stock) { toast('⚠ Sin stock suficiente'); return; }
+  item.qty=nq; updateCartUI();
+}
+function clearCart() { cart=[]; updateCartUI(); renderProducts(activeFilter); }
+
+function updateCartUI() {
+  const total=cart.reduce((a,c)=>a+c.qty,0);
+  document.getElementById('cart-count').textContent=total;
+  const wrap=document.getElementById('cart-items-wrap');
+  if (!cart.length) {
+    wrap.innerHTML=`<div class="empty-cart"><div class="big-icon">🛒</div><p>Tu carrito está vacío</p><p style="font-size:.78rem;margin-top:5px;">¡Agregá productos desde la galería!</p></div>`;
+  } else {
+    wrap.innerHTML=cart.map(it=>`
+      <div class="cart-item">
+        <img src="${it.img}" alt="${it.title}" onerror="this.src='https://via.placeholder.com/60x60/0e0e22/00e5ff?text=EDA'">
+        <div class="cart-item-info">
+          <div class="cart-item-name">${it.title}</div>
+          <div class="cart-item-price">$${(it.price*it.qty).toLocaleString('es-AR')}</div>
+          <div class="qty-controls">
+            <button class="qty-btn" onclick="updateQty(${it.id},-1)">−</button>
+            <span class="qty-display">${it.qty}</span>
+            <button class="qty-btn" onclick="updateQty(${it.id},+1)">+</button>
+          </div>
+        </div>
+        <button class="cart-remove" onclick="removeFromCart(${it.id})">🗑</button>
+      </div>`).join('');
+  }
+  const sub=cart.reduce((a,c)=>a+c.price*c.qty,0);
+  document.getElementById('cart-sub').textContent=`$${sub.toLocaleString('es-AR')}`;
+  document.getElementById('cart-tot').textContent=`$${sub.toLocaleString('es-AR')}`;
+}
+
+function toggleCart() {
+  document.getElementById('cart-sidebar').classList.toggle('open');
+  document.getElementById('cart-overlay').classList.toggle('open');
+}
+
+// ============================================================
+//  CHECKOUT
+// ============================================================
+function openCheckout() {
+  if (!cart.length) { toast('⚠ El carrito está vacío'); return; }
+  toggleCart();
+  document.getElementById('modal-overlay').classList.add('open');
+  document.getElementById('checkout-form-wrap').style.display='block';
+  document.getElementById('order-ok').style.display='none';
+}
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+
+function selPay(type) {
+  activePay=type;
+  ['transfer','efectivo','mp'].forEach(t=>{
+    document.getElementById(`pay-${t}`).classList.toggle('selected',t===type);
+  });
+  document.getElementById('bank-info-box').style.display=type==='transfer'?'block':'none';
+}
+
+function buildOrderMessage(name, phone, email, addr, payLabel, orderId) {
+  const lines = [];
+  lines.push(`🎸 *NUEVO PEDIDO — Ecos del Ayer Store*`);
+  lines.push(`Pedido #${orderId}`);
+  lines.push('');
+  lines.push(`👤 *Cliente:* ${name}`);
+  if (phone) lines.push(`📱 *Teléfono:* ${phone}`);
+  lines.push(`📧 *Email:* ${email}`);
+  lines.push(`📍 *Dirección:* ${addr}`);
+  lines.push(`💳 *Medio de pago:* ${payLabel}`);
+  lines.push('');
+  lines.push(`🛒 *Detalle del pedido:*`);
+  cart.forEach(it => {
+    lines.push(`• ${it.title} — Cant: ${it.qty} × $${it.price.toLocaleString('es-AR')} = $${(it.qty*it.price).toLocaleString('es-AR')}`);
+  });
+  const total = cart.reduce((a,c)=>a+c.price*c.qty,0);
+  lines.push('');
+  lines.push(`💰 *TOTAL: $${total.toLocaleString('es-AR')}*`);
+  return lines.join('\n');
+}
+
+function confirmOrder() {
+  const name=document.getElementById('ch-name').value.trim();
+  const phone=document.getElementById('ch-phone').value.trim();
+  const email=document.getElementById('ch-email').value.trim();
+  const addr=document.getElementById('ch-addr').value.trim();
+  if (!name||!email||!addr) { toast('⚠ Completá los campos obligatorios'); return; }
+
+  if (!settings.whatsapp) {
+    toast('⚠ La tienda no tiene un número de WhatsApp configurado. Avisale al administrador.');
+    return;
+  }
+
+  // Reducir stock
+  cart.forEach(it=>{
+    const p=products.find(x=>x.id===it.id);
+    if (p) { p.stock=Math.max(0,p.stock-it.qty); persistProduct(p); }
+  });
+
+  const payLabels = { transfer:'Transferencia / Depósito', efectivo:'Efectivo', mp:'MercadoPago / PayPal' };
+  const orderId = Date.now().toString().slice(-6);
+  const message = buildOrderMessage(name, phone, email, addr, payLabels[activePay]||activePay, orderId);
+
+  // Abrir WhatsApp con el pedido pre-cargado
+  const waUrl = `https://wa.me/${settings.whatsapp}?text=${encodeURIComponent(message)}`;
+  window.open(waUrl, '_blank');
+
+  // Si el medio de pago es MercadoPago y hay link fijo configurado, abrirlo también
+  if (activePay==='mp' && settings.mpLink) {
+    window.open(settings.mpLink,'_blank');
+  }
+
+  document.getElementById('checkout-form-wrap').style.display='none';
+  document.getElementById('order-ok').style.display='block';
+  renderProducts(activeFilter);
+}
+
+// ============================================================
+//  CONTACT
+// ============================================================
+function buildContactMessage(name, email, subject, message) {
+  const lines = [];
+  lines.push(`💬 *NUEVA CONSULTA — Ecos del Ayer Store*`);
+  lines.push('');
+  lines.push(`👤 *Nombre:* ${name}`);
+  lines.push(`📧 *Correo:* ${email}`);
+  if (subject) lines.push(`📌 *Asunto:* ${subject}`);
+  lines.push('');
+  lines.push(`📝 *Mensaje:*`);
+  lines.push(message);
+  return lines.join('\n');
+}
+
+function sendContact() {
+  const name=document.getElementById('c-name').value.trim();
+  const email=document.getElementById('c-email').value.trim();
+  const subject=document.getElementById('c-subject').value.trim();
+  const message=document.getElementById('c-message').value.trim();
+  if (!name||!email||!message) { toast('⚠ Completá todos los campos'); return; }
+
+  let sentSomewhere = false;
+
+  // WhatsApp
+  if (settings.whatsapp) {
+    const waMsg = buildContactMessage(name, email, subject, message);
+    const waUrl = `https://wa.me/${settings.whatsapp}?text=${encodeURIComponent(waMsg)}`;
+    window.open(waUrl, '_blank');
+    sentSomewhere = true;
+  }
+
+  // Email (si está configurado EmailJS)
+  if (settings.ejsPub && settings.ejsSvc && settings.ejsTpl) {
+    emailjs.init(settings.ejsPub);
+    emailjs.send(settings.ejsSvc, settings.ejsTpl, {
+      from_name:name, from_email:email, subject, message,
+      to_email:settings.adminEmail||settings.email,
+    }).catch(()=>{});
+    sentSomewhere = true;
+  }
+
+  if (!sentSomewhere) {
+    console.log('ContactForm (demo, sin WhatsApp ni EmailJS configurado):', {name,email,subject,message});
+    toast('⚠ La tienda no tiene WhatsApp ni email configurado para recibir consultas');
+    return;
+  }
+
+  document.getElementById('contact-ok').style.display='block';
+  ['c-name','c-email','c-subject','c-message'].forEach(id=>document.getElementById(id).value='');
+  setTimeout(()=>document.getElementById('contact-ok').style.display='none',5000);
+}
+
+// ============================================================
+//  MUSIC PLAYER
+// ============================================================
+function buildVizBars() {
+  const viz=document.getElementById('player-viz');
+  viz.innerHTML='';
+  for (let i=0;i<14;i++) {
+    const h=Math.floor(Math.random()*12)+2;
+    const dur=(Math.random()*0.4+0.3).toFixed(2);
+    const b=document.createElement('div');
+    b.className='viz-bar';
+    b.style.cssText=`--dur:${dur}s;--max:${h}px;height:2px;`;
+    viz.appendChild(b);
+  }
+}
+
+function setVizActive(active) {
+  document.querySelectorAll('.viz-bar').forEach(b=>b.classList.toggle('active',active));
+  document.getElementById('reel-icon').classList.toggle('spinning',active);
+}
+
+function fmtTime(s) {
+  if (!isFinite(s)||s<0) return '0:00';
+  const m=Math.floor(s/60), sec=Math.floor(s%60);
+  return `${m}:${sec.toString().padStart(2,'0')}`;
+}
+
+audio.addEventListener('timeupdate',()=>{
+  if (!audio.duration) return;
+  const pct=(audio.currentTime/audio.duration)*100;
+  document.getElementById('progress-fill').style.width=pct+'%';
+  document.getElementById('p-current').textContent=fmtTime(audio.currentTime);
+});
+audio.addEventListener('loadedmetadata',()=>{
+  document.getElementById('p-duration').textContent=fmtTime(audio.duration);
+});
+audio.addEventListener('ended',()=>{ nextTrack(); });
+audio.addEventListener('error',()=>{
+  document.getElementById('player-error').style.display='block';
+  setVizActive(false);
+  document.getElementById('play-btn').textContent='▶';
+  isPlaying=false;
+});
+audio.addEventListener('playing',()=>{
+  document.getElementById('player-error').style.display='none';
+});
+
+function loadTrack(idx) {
+  if (!tracks.length) return;
+  currentIdx = ((idx%tracks.length)+tracks.length)%tracks.length;
+  const t=tracks[currentIdx];
+  document.getElementById('player-track-name').textContent=t.name||'Sin título';
+  document.getElementById('player-track-artist').textContent=t.artist||'—';
+  document.getElementById('progress-fill').style.width='0%';
+  document.getElementById('p-current').textContent='0:00';
+  document.getElementById('p-duration').textContent='0:00';
+  document.getElementById('player-error').style.display='none';
+
+  const src = t.blobUrl || t.url || '';
+  if (src) {
+    audio.src=src; audio.load();
+    if (isPlaying) audio.play().catch(()=>{});
+  } else {
+    audio.src=''; isPlaying=false;
+    document.getElementById('play-btn').textContent='▶';
+    setVizActive(false);
+    toast('⚠ Esta pista no tiene audio. Agregá una URL en Admin → Música');
+  }
+}
+
+function togglePlay() {
+  if (!tracks.length) { toast('⚠ No hay pistas. Agregá en Admin → Música'); return; }
+  const t=tracks[currentIdx];
+  const src=t.blobUrl||t.url||'';
+  if (!src) { toast('⚠ Esta pista no tiene audio. Subí un archivo o pegá una URL'); return; }
+  if (!audio.src || audio.src!==src) { audio.src=src; audio.load(); }
+  if (isPlaying) {
+    audio.pause(); isPlaying=false;
+    document.getElementById('play-btn').textContent='▶';
+    setVizActive(false);
+  } else {
+    audio.play().then(()=>{
+      isPlaying=true;
+      document.getElementById('play-btn').textContent='⏸';
+      setVizActive(true);
+    }).catch(()=>{
+      document.getElementById('player-error').style.display='block';
+    });
+  }
+}
+
+function prevTrack() { isPlaying=false; loadTrack(currentIdx-1); if(isPlaying) togglePlay(); }
+function nextTrack() {
+  const next = isShuffle
+    ? Math.floor(Math.random()*tracks.length)
+    : currentIdx+1;
+  isPlaying=false; loadTrack(next);
+  if (tracks[currentIdx]?.blobUrl || tracks[currentIdx]?.url) {
+    audio.play().then(()=>{ isPlaying=true; document.getElementById('play-btn').textContent='⏸'; setVizActive(true); }).catch(()=>{});
+  }
+}
+
+function toggleShuffle() {
+  isShuffle=!isShuffle;
+  document.getElementById('shuffle-btn').style.color=isShuffle?'var(--neon-cyan)':'';
+  document.getElementById('shuffle-btn').style.borderColor=isShuffle?'var(--neon-cyan)':'';
+  toast(isShuffle?'🔀 Modo aleatorio ON':'🔀 Modo aleatorio OFF');
+}
+
+function setVolume(v) { audio.volume=parseFloat(v); }
+
+function seekAudio(e) {
+  if (!audio.duration) return;
+  const rect=document.getElementById('progress-wrap').getBoundingClientRect();
+  const pct=(e.clientX-rect.left)/rect.width;
+  audio.currentTime=pct*audio.duration;
+}
+
+function togglePlayerMin() {
+  const pl=document.getElementById('music-player');
+  const isMin=pl.classList.toggle('minimized');
+  document.getElementById('min-btn').textContent=isMin?'▲':'▼';
+}
+
+function showTracklist() {
+  document.getElementById('tracklist-modal').style.display='flex';
+  renderTracklist();
+}
+function closeTracklist() { document.getElementById('tracklist-modal').style.display='none'; }
+
+function renderTracklist() {
+  const el=document.getElementById('tracklist-body');
+  if (!tracks.length) { el.innerHTML='<p style="color:var(--text-muted);padding:10px;">Sin pistas. Agregá desde Admin → Música.</p>'; return; }
+  el.innerHTML=tracks.map((t,i)=>`
+    <div class="tl-item ${i===currentIdx?'active':''}" onclick="jumpTo(${i})">
+      <span class="tl-num">${i===currentIdx?'♪':i+1}</span>
+      <div style="flex:1;">
+        <div class="tl-name">${t.name}</div>
+        <div style="font-size:.65rem;color:var(--text-muted);">${t.artist||''}</div>
+      </div>
+      ${!(t.blobUrl||t.url)?`<span class="tl-no-url">sin audio</span>`:''}
+    </div>`).join('');
+}
+
+function jumpTo(i) {
+  isPlaying=true; loadTrack(i);
+  audio.play().then(()=>{ isPlaying=true; document.getElementById('play-btn').textContent='⏸'; setVizActive(true); }).catch(()=>{});
+  closeTracklist();
+}
+
+// ============================================================
+//  TOAST
+// ============================================================
+let toastT;
+function toast(msg) {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(toastT);
+  toastT=setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+// ============================================================
+//  ADMIN AUTH — Firebase Authentication
+// ============================================================
+function doLogin() {
+  const email=document.getElementById('admin-user').value.trim();
+  const pass=document.getElementById('admin-pass').value;
+
+  if (!FIREBASE_READY) {
+    // Modo demo local sin Firebase configurado todavía
+    if (pass===DEFAULT_PASS) {
+      document.getElementById('login-err').style.display='none';
+      isAdminLoggedIn=true;
+      showView('admin');
+    } else {
+      document.getElementById('login-err').textContent='⚠ Firebase no está configurado. Usá la contraseña demo: admin1234';
+      document.getElementById('login-err').style.display='block';
+    }
+    return;
+  }
+
+  if (!email || !pass) { toast('⚠ Completá email y contraseña'); return; }
+
+  fbAuth.signInWithEmailAndPassword(email, pass).then(()=>{
+    document.getElementById('login-err').style.display='none';
+    document.getElementById('admin-pass').value='';
+    isAdminLoggedIn=true;
+    showView('admin');
+  }).catch(err=>{
+    console.error(err);
+    document.getElementById('login-err').textContent='❌ Email o contraseña incorrectos';
+    document.getElementById('login-err').style.display='block';
+  });
+}
+
+function doLogout() {
+  isAdminLoggedIn=false;
+  document.getElementById('admin-user').value='';
+  document.getElementById('admin-pass').value='';
+  history.replaceState(null, '', window.location.pathname);
+  if (FIREBASE_READY) fbAuth.signOut();
+  showView('store');
+}
+
+// ============================================================
+//  ADMIN — Products table
+// ============================================================
+function updateAdminStats() {
+  document.getElementById('admin-stats').textContent=
+    `${products.length} productos · Stock total: ${products.reduce((a,p)=>a+p.stock,0)} · Valor total: $${products.reduce((a,p)=>a+p.price,0).toLocaleString('es-AR')}`;
+}
+
+function renderAdminTable() {
+  updateAdminStats();
+  document.getElementById('admin-prod-table').innerHTML=products.map(p=>`
+    <tr>
+      <td><img class="table-img" src="${p.img}" alt="${p.title}" onerror="this.src='https://via.placeholder.com/46x46/0e0e22/00e5ff?text=EDA'"></td>
+      <td style="font-family:var(--font-deco);">${p.title}</td>
+      <td style="font-size:.78rem;color:var(--text-muted);">${p.category}</td>
+      <td style="color:var(--neon-cyan);font-family:var(--font-title);">$${p.price.toLocaleString('es-AR')}</td>
+      <td>
+        <div class="stock-ctrl">
+          <button class="btn-stock" onclick="quickStock(${p.id},-1)">−</button>
+          <span class="stock-val" style="color:${p.stock===0?'var(--neon-pink)':p.stock<=3?'var(--neon-yellow)':'var(--text-main)'}">${p.stock}</span>
+          <button class="btn-stock" onclick="quickStock(${p.id},+1)">+</button>
+        </div>
+      </td>
+      <td>
+        <div class="table-actions">
+          <button class="btn-edit" onclick="editProduct(${p.id})">✏ Editar</button>
+          <button class="btn-delete" onclick="delProduct(${p.id})">🗑 Borrar</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function quickStock(id,d) {
+  const p=products.find(x=>x.id===id); if(!p) return;
+  p.stock=Math.max(0,p.stock+d);
+  persistProduct(p);
+  if (!FIREBASE_READY) { renderAdminTable(); renderProducts(activeFilter); }
+}
+
+function delProduct(id) {
+  if (!confirm('¿Eliminar este producto?')) return;
+  removeProductRemote(id).then(()=>{
+    if (!FIREBASE_READY) { renderAdminTable(); renderProducts(activeFilter); }
+    toast('✓ Producto eliminado');
+  });
+}
+
+function editProduct(id) {
+  const p=products.find(x=>x.id===id); if(!p) return;
+  document.getElementById('edit-id').value=p.id;
+  document.getElementById('p-title').value=p.title;
+  document.getElementById('p-cat').value=p.category;
+  document.getElementById('p-price').value=p.price;
+  document.getElementById('p-stock').value=p.stock;
+  document.getElementById('p-dims').value=p.dims||'';
+  document.getElementById('add-form-title').textContent='✏ EDITANDO PRODUCTO';
+  // show image
+  setImgMode('url');
+  document.getElementById('p-img-url').value=p.img;
+  const prev=document.getElementById('img-url-preview');
+  prev.src=p.img; prev.style.display='block';
+  pendingImgData=null;
+  aTab('add',document.querySelectorAll('.admin-tab')[1]);
+}
+
+function cancelEdit() {
+  document.getElementById('edit-id').value='';
+  document.getElementById('add-form-title').textContent='➕ AGREGAR PRODUCTO';
+  ['p-title','p-price','p-stock','p-dims','p-img-url'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('p-cat').value='Cuadros';
+  document.getElementById('img-preview').style.display='none';
+  document.getElementById('img-url-preview').style.display='none';
+  pendingImgData=null;
+}
+
+// ============================================================
+//  IMAGE MODE (file vs url)
+// ============================================================
+function setImgMode(mode) {
+  imgMode=mode;
+  document.getElementById('img-file-zone').style.display=mode==='file'?'block':'none';
+  document.getElementById('img-url-zone').style.display=mode==='url'?'block':'none';
+  document.getElementById('img-mode-file').style.borderColor=mode==='file'?'var(--neon-cyan)':'rgba(255,255,255,0.12)';
+  document.getElementById('img-mode-file').style.color=mode==='file'?'var(--neon-cyan)':'var(--text-muted)';
+  document.getElementById('img-mode-file').style.background=mode==='file'?'rgba(0,229,255,0.08)':'transparent';
+  document.getElementById('img-mode-url').style.borderColor=mode==='url'?'var(--neon-cyan)':'rgba(255,255,255,0.12)';
+  document.getElementById('img-mode-url').style.color=mode==='url'?'var(--neon-cyan)':'var(--text-muted)';
+  document.getElementById('img-mode-url').style.background=mode==='url'?'rgba(0,229,255,0.08)':'transparent';
+}
+
+function handleImgFile(file) {
+  if (!file) return;
+  if (file.size>5*1024*1024) { toast('⚠ La imagen supera 5MB'); return; }
+  const prog=document.getElementById('img-progress');
+  const fill=document.getElementById('img-progress-fill');
+  prog.style.display='block'; fill.style.width='0%';
+  const reader=new FileReader();
+  reader.onprogress=e=>{ if(e.lengthComputable) fill.style.width=(e.loaded/e.total*100)+'%'; };
+  reader.onload=e=>{
+    pendingImgData=e.target.result; // base64
+    fill.style.width='100%';
+    setTimeout(()=>prog.style.display='none',400);
+    const prev=document.getElementById('img-preview');
+    prev.src=pendingImgData; prev.style.display='block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function previewUrl() {
+  const url=document.getElementById('p-img-url').value.trim();
+  const prev=document.getElementById('img-url-preview');
+  if (url) { prev.src=url; prev.style.display='block'; } else { prev.style.display='none'; }
+}
+
+// ============================================================
+//  AUDIO MODE (file vs url)
+// ============================================================
+function setAudioMode(mode) {
+  audMode=mode;
+  document.getElementById('aud-file-zone').style.display=mode==='file'?'block':'none';
+  document.getElementById('aud-url-zone').style.display=mode==='url'?'block':'none';
+  document.getElementById('aud-mode-file').style.borderColor=mode==='file'?'var(--neon-purple)':'rgba(255,255,255,0.12)';
+  document.getElementById('aud-mode-file').style.color=mode==='file'?'var(--neon-purple)':'var(--text-muted)';
+  document.getElementById('aud-mode-file').style.background=mode==='file'?'rgba(200,0,255,0.08)':'transparent';
+  document.getElementById('aud-mode-url').style.borderColor=mode==='url'?'var(--neon-purple)':'rgba(255,255,255,0.12)';
+  document.getElementById('aud-mode-url').style.color=mode==='url'?'var(--neon-purple)':'var(--text-muted)';
+  document.getElementById('aud-mode-url').style.background=mode==='url'?'rgba(200,0,255,0.08)':'transparent';
+}
+
+function handleAudioFile(file) {
+  if (!file) return;
+  const prog=document.getElementById('aud-progress');
+  const fill=document.getElementById('aud-progress-fill');
+  prog.style.display='block'; fill.style.width='0%';
+  const reader=new FileReader();
+  reader.onprogress=e=>{ if(e.lengthComputable) fill.style.width=(e.loaded/e.total*100)+'%'; };
+  reader.onload=e=>{
+    pendingAudioBlob=e.target.result; // base64 data URL — works as audio src
+    fill.style.width='100%';
+    setTimeout(()=>prog.style.display='none',400);
+    const fn=document.getElementById('aud-file-name');
+    fn.textContent=`✓ ${file.name}`; fn.style.display='block';
+    // Pre-fill name if empty
+    if (!document.getElementById('m-name').value) {
+      document.getElementById('m-name').value=file.name.replace(/\.[^.]+$/,'');
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+// ============================================================
+//  DRAG & DROP
+// ============================================================
+function dragOver(e,zone) { e.preventDefault(); document.getElementById(zone).classList.add('drag'); }
+function dragLeave(zone)  { document.getElementById(zone).classList.remove('drag'); }
+function dropFile(e,type) {
+  e.preventDefault();
+  const file=e.dataTransfer.files[0]; if(!file) return;
+  if (type==='img')   handleImgFile(file);
+  if (type==='audio') handleAudioFile(file);
+}
+
+// ============================================================
+//  SAVE PRODUCT
+// ============================================================
+function saveProduct() {
+  const title=document.getElementById('p-title').value.trim();
+  const cat=document.getElementById('p-cat').value;
+  const price=parseFloat(document.getElementById('p-price').value);
+  const stock=parseInt(document.getElementById('p-stock').value);
+  const dims=document.getElementById('p-dims').value.trim();
+  const editId=document.getElementById('edit-id').value;
+
+  // Get image
+  let img='';
+  if (imgMode==='file'&&pendingImgData) { img=pendingImgData; }
+  else if (imgMode==='url') { img=document.getElementById('p-img-url').value.trim(); }
+  else if (editId) { img=products.find(p=>p.id===parseInt(editId))?.img||''; } // keep existing
+
+  if (!title||!cat||isNaN(price)||isNaN(stock)||!img) {
+    toast('⚠ Completá todos los campos y subí una imagen'); return;
+  }
+
+  if (FIREBASE_READY && imgMode==='file' && img.length > 700000) {
+    toast('⚠ La imagen es muy pesada para guardar en la base de datos. Usá una más liviana o pegá una URL.');
+    return;
+  }
+
+  let productData;
+  if (editId) {
+    const existing=products.find(x=>x.id===parseInt(editId));
+    productData = { id: parseInt(editId), title, category:cat, price, stock, img, dims };
+    if (existing) Object.assign(existing, productData); // optimistic local update
+  } else {
+    const newId = FIREBASE_READY ? Date.now() : (products.length>0?Math.max(...products.map(p=>p.id))+1:1);
+    productData = { id:newId, title, category:cat, price, stock, img, dims };
+  }
+
+  persistProduct(productData).then(()=>{
+    toast(editId ? '✓ Producto actualizado' : '✓ Producto agregado');
+    cancelEdit();
+    if (!FIREBASE_READY) { renderAdminTable(); renderProducts(activeFilter); }
+    aTab('products',document.querySelectorAll('.admin-tab')[0]);
+  }).catch(err=>{
+    console.error(err);
+    toast('⚠ Error al guardar. Revisá tu conexión a Firebase.');
+  });
+}
+
+// ============================================================
+//  ADMIN — Music
+// ============================================================
+
+// Convierte un link de "Compartir" de Google Drive en un link directo reproducible.
+// Acepta los formatos típicos que copia el botón "Compartir" de Drive:
+//   https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+//   https://drive.google.com/open?id=FILE_ID
+//   https://drive.google.com/uc?id=FILE_ID&export=download  (ya convertido)
+// Si la URL no es de Google Drive, la devuelve sin cambios.
+function convertGoogleDriveLink(url) {
+  if (!url) return url;
+  if (!url.includes('drive.google.com')) return url;
+
+  let fileId = null;
+  const m1 = url.match(/\/file\/d\/([^/]+)/);      // .../file/d/FILE_ID/view
+  const m2 = url.match(/[?&]id=([^&]+)/);           // ...open?id=FILE_ID  o  ...uc?id=FILE_ID
+
+  if (m1) fileId = m1[1];
+  else if (m2) fileId = m2[1];
+
+  if (!fileId) return url; // no se pudo detectar el ID, se deja como vino
+
+  return `https://drive.google.com/uc?export=download&id=${fileId}`;
+}
+
+function addTrack() {
+  const name=document.getElementById('m-name').value.trim();
+  const artist=document.getElementById('m-artist').value.trim();
+  if (!name) { toast('⚠ Ingresá el nombre de la pista'); return; }
+
+  let url=''; let blobUrl=null; let blobData=null;
+  if (audMode==='file'&&pendingAudioBlob) {
+    if (FIREBASE_READY) {
+      toast('⚠ Con Firebase conectado, los archivos de audio subidos no se pueden sincronizar (son muy pesados). Usá la opción "Pegar URL" con Google Drive.');
+      return;
+    }
+    blobData=pendingAudioBlob;
+    blobUrl=pendingAudioBlob; // base64 dataURL — solo funciona en modo demo local
+  } else if (audMode==='url') {
+    const rawUrl = document.getElementById('m-url')?.value.trim()||'';
+    const wasDrive = rawUrl.includes('drive.google.com');
+    url = convertGoogleDriveLink(rawUrl);
+    if (wasDrive && url !== rawUrl) {
+      toast('🔄 Link de Google Drive detectado y convertido automáticamente');
+    }
+  }
+
+  if (!url&&!blobUrl) { toast('⚠ Subí un archivo o pegá una URL de audio'); return; }
+
+  const newId = FIREBASE_READY ? Date.now() : (tracks.length>0?Math.max(...tracks.map(t=>t.id))+1:1);
+  const trackData = {id:newId,name,artist,url,blobUrl:blobUrl||'',blob:!!blobData};
+
+  persistTrack(trackData).then(()=>{
+    toast('✓ Pista agregada al tracklist');
+    document.getElementById('m-name').value='';
+    document.getElementById('m-artist').value='';
+    if (document.getElementById('m-url')) document.getElementById('m-url').value='';
+    document.getElementById('aud-file-name').style.display='none';
+    pendingAudioBlob=null;
+    if (!FIREBASE_READY) { renderAdminMusic(); loadTrack(tracks.length-1); }
+  }).catch(err=>{
+    console.error(err);
+    toast('⚠ Error al guardar la pista. Revisá tu conexión a Firebase.');
+  });
+}
+
+function delTrack(id) {
+  removeTrackRemote(id).then(()=>{
+    if (currentIdx>=tracks.length) currentIdx=0;
+    if (!FIREBASE_READY) {
+      renderAdminMusic();
+      if (tracks.length) loadTrack(currentIdx);
+      else { audio.src=''; document.getElementById('player-track-name').textContent='Sin pista seleccionada'; }
+    }
+    toast('✓ Pista eliminada');
+  });
+}
+
+function renderAdminMusic() {
+  const el=document.getElementById('admin-music-list');
+  if (!tracks.length) { el.innerHTML='<p style="color:var(--text-muted);">Sin pistas cargadas.</p>'; return; }
+  el.innerHTML=tracks.map((t,i)=>`
+    <div class="music-item">
+      <span style="color:var(--neon-purple);font-size:1.1rem;">${t.blobUrl||t.url?'🎵':'⚠'}</span>
+      <div class="music-item-info">
+        <div class="music-item-name">${t.name}</div>
+        <div style="font-size:.68rem;color:var(--text-muted);">${t.artist||''} · ${t.blobUrl?'Archivo local (base64)':t.url||'Sin audio'}</div>
+      </div>
+      <button class="p-btn" onclick="jumpTo(${i});showView('store');" title="Reproducir">▶</button>
+      <button class="btn-delete" onclick="delTrack(${t.id})">🗑</button>
+    </div>`).join('');
+}
+
+// ============================================================
+//  ADMIN — Settings
+// ============================================================
+function loadSettingsForm() {
+  document.getElementById('s-email').value=settings.email||'';
+  document.getElementById('s-whatsapp').value=settings.whatsapp||'';
+  document.getElementById('s-mp').value=settings.mpLink||'';
+  document.getElementById('s-instagram').value=settings.instagram||'';
+  document.getElementById('s-tiktok').value=settings.tiktok||'';
+  document.getElementById('s-bank').value=settings.bankInfo||'';
+  document.getElementById('s-ejs-pub').value=settings.ejsPub||'';
+  document.getElementById('s-ejs-svc').value=settings.ejsSvc||'';
+  document.getElementById('s-ejs-tpl').value=settings.ejsTpl||'';
+  document.getElementById('s-admin-email').value=settings.adminEmail||'';
+}
+
+function saveSettings() {
+  settings.email=document.getElementById('s-email').value.trim();
+  settings.whatsapp=document.getElementById('s-whatsapp').value.trim().replace(/[^0-9]/g,'');
+  settings.mpLink=document.getElementById('s-mp').value.trim();
+  settings.instagram=document.getElementById('s-instagram').value.trim();
+  settings.tiktok=document.getElementById('s-tiktok').value.trim();
+  settings.bankInfo=document.getElementById('s-bank').value.trim();
+  settings.ejsPub=document.getElementById('s-ejs-pub').value.trim();
+  settings.ejsSvc=document.getElementById('s-ejs-svc').value.trim();
+  settings.ejsTpl=document.getElementById('s-ejs-tpl').value.trim();
+  settings.adminEmail=document.getElementById('s-admin-email').value.trim();
+
+  persistSettings().then(()=>{
+    applySettingsToStorefront();
+    if (!settings.whatsapp) {
+      toast('⚠ Guardado, pero falta tu número de WhatsApp para recibir pedidos');
+    } else {
+      toast('✓ Configuración guardada');
+    }
+  }).catch(err=>{
+    console.error(err);
+    toast('⚠ Error al guardar. Revisá tu conexión a Firebase.');
+  });
+}
+
+function resetMyPassword() {
+  if (!FIREBASE_READY) { toast('⚠ Conectá Firebase primero (ver README)'); return; }
+  const user = fbAuth.currentUser;
+  if (!user || !user.email) { toast('⚠ No se detectó tu email de sesión'); return; }
+  fbAuth.sendPasswordResetEmail(user.email).then(()=>{
+    toast(`✓ Te enviamos un link a ${user.email} para cambiar tu contraseña`);
+  }).catch(err=>{
+    console.error(err);
+    toast('⚠ No se pudo enviar el email. Intentá de nuevo.');
+  });
+}
+
+// ============================================================
+//  ADMIN TABS
+// ============================================================
+function aTab(name,btn) {
+  document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.admin-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+// ============================================================
+//  RUTA SECRETA — solo vos sabés que existe
+// ============================================================
+const SECRET_HASH = '#enki605';
+
+function checkHash() {
+  if (window.location.hash === SECRET_HASH) {
+    // Si ya hay sesión activa de Firebase, entra directo al panel
+    if (FIREBASE_READY && fbAuth.currentUser) {
+      isAdminLoggedIn = true;
+      showView('admin');
+    } else {
+      showView('adminLogin');
+    }
+  }
+}
+
+window.addEventListener('hashchange', () => {
+  if (window.location.hash === SECRET_HASH) {
+    checkHash();
+  } else if (window.location.hash === '') {
+    showView('store');
+  }
+});
+
+function init() {
+  loadData();
+  renderProducts(activeFilter);
+  buildVizBars();
+  loadTrack(0);
+  document.getElementById('vol-slider').value=0.7;
+  audio.volume=0.7;
+  applySettingsToStorefront();
+  updateCartUI();
+
+  if (FIREBASE_READY) {
+    fbAuth.onAuthStateChanged(user => {
+      isAdminLoggedIn = !!user;
+      if (window.location.hash === SECRET_HASH) checkHash();
+    });
+  }
+
+  checkHash(); // revisar si ya hay hash al cargar
+  if (window.location.hash !== SECRET_HASH) showView('store');
+}
+
+init();
+</script>
+</body>
+</html>

@@ -7,6 +7,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Bebas+Neue&family=Permanent+Marker&family=Barlow:wght@400;600;700&family=Boogaloo&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<!-- FIREBASE SDK — necesario para sincronizar productos, música y configuración entre todos los dispositivos -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
 /* =============================================
    GLOBAL VARIABLES — Ecos del Ayer
@@ -720,7 +724,6 @@ footer p { font-size:.75rem; color:var(--text-muted); }
     <li><a href="#contacto">Contacto</a></li>
   </ul>
   <div class="nav-right">
-    <button class="nav-admin-btn" onclick="showView('adminLogin')">⚙ Admin</button>
     <button id="cart-btn" onclick="toggleCart()">
       🛒 <span id="cart-count">0</span>
     </button>
@@ -849,7 +852,7 @@ footer p { font-size:.75rem; color:var(--text-muted); }
         <h3>¿Tenés alguna consulta?</h3>
         <p>Escribinos por pedidos personalizados, disponibilidad de stock, envíos o cualquier duda. ¡Te respondemos a la brevedad!</p>
         <div class="contact-detail"><span>📧</span><span id="display-email">ecosdelayer@email.com</span></div>
-        <div class="contact-detail"><span>📱</span><span>Instagram / TikTok: @ecosdelayer</span></div>
+        <div class="contact-detail"><span>📱</span><span id="display-social">Instagram / TikTok: @ecosdelayer</span></div>
         <div class="contact-detail"><span>🕐</span><span>Respondemos en menos de 24hs</span></div>
       </div>
       <div class="contact-form">
@@ -870,8 +873,8 @@ footer p { font-size:.75rem; color:var(--text-muted); }
     <span class="footer-logo-ayer">del Ayer</span>
     <span class="footer-store">— STORE —</span>
     <div class="social-row">
-      <a class="social-btn" href="#" title="Instagram">📸</a>
-      <a class="social-btn" href="#" title="TikTok">🎵</a>
+      <a class="social-btn" id="social-ig" href="#" title="Instagram" target="_blank" rel="noopener" style="display:none;">📸</a>
+      <a class="social-btn" id="social-tk" href="#" title="TikTok" target="_blank" rel="noopener" style="display:none;">🎵</a>
     </div>
     <p>© 2025 Ecos del Ayer Store — Todos los derechos reservados</p>
   </footer>
@@ -930,7 +933,8 @@ footer p { font-size:.75rem; color:var(--text-muted); }
     <div id="order-ok" class="success-msg" style="display:none;">
       <div class="big-e">🎉</div>
       <h3>¡PEDIDO RECIBIDO!</h3>
-      <p>Tu pedido fue registrado. Te contactaremos al correo ingresado para coordinar el pago y envío.<br><br>
+      <p>Se abrió WhatsApp con el detalle completo de tu pedido. Enviá el mensaje para confirmarlo y coordinar el pago y envío.<br><br>
+      <span style="color:#00e676;">Si no se abrió automáticamente, revisá que tu navegador permita ventanas emergentes.</span><br><br>
       <span style="color:var(--neon-cyan);">¡Gracias por elegirnos! 🎸</span></p>
       <button class="btn-primary" style="margin-top:18px;" onclick="closeModal();clearCart();">VOLVER A LA TIENDA</button>
     </div>
@@ -946,10 +950,14 @@ footer p { font-size:.75rem; color:var(--text-muted); }
       <h2>ADMIN PANEL</h2>
       <p class="sub">Acceso exclusivo — Ecos del Ayer Store</p>
       <div class="form-group">
-        <label>Contraseña</label>
-        <input type="password" id="admin-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+        <label>Email</label>
+        <input type="email" id="admin-user" placeholder="tu@email.com" autocomplete="off" onkeydown="if(event.key==='Enter')document.getElementById('admin-pass').focus()">
       </div>
-      <p id="login-err" class="login-error">❌ Contraseña incorrecta</p>
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="admin-pass" placeholder="••••••••" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <p id="login-err" class="login-error">❌ Email o contraseña incorrectos</p>
       <button class="btn-login" onclick="doLogin()">INGRESAR →</button>
       <br>
       <button onclick="showView('store')" style="margin-top:12px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.78rem;">← Volver a la tienda</button>
@@ -1036,7 +1044,7 @@ footer p { font-size:.75rem; color:var(--text-muted); }
           <div id="img-file-zone">
             <div class="upload-area" id="img-drop-area" onclick="document.getElementById('img-file-input').click()" ondragover="dragOver(event,'img-drop-area')" ondragleave="dragLeave('img-drop-area')" ondrop="dropFile(event,'img')">
               <div class="upload-icon">🖼️</div>
-              <p>Hacé clic o arrastrá una imagen aquí<br><span style="font-size:.7rem;">(JPG, PNG, WEBP · Máx. 5MB)</span></p>
+              <p>Hacé clic o arrastrá una imagen aquí<br><span style="font-size:.7rem;">(JPG, PNG, WEBP · Máx. ~500KB recomendado)</span></p>
             </div>
             <input type="file" id="img-file-input" accept="image/*" style="display:none;" onchange="handleImgFile(this.files[0])">
             <div class="upload-progress" id="img-progress"><div class="upload-progress-fill" id="img-progress-fill"></div></div>
@@ -1062,18 +1070,20 @@ footer p { font-size:.75rem; color:var(--text-muted); }
       <div class="admin-card">
         <h3>➕ AGREGAR PISTA</h3>
         <div class="settings-info">
-          💡 <strong>Cómo funciona:</strong> Subí un archivo MP3/OGG desde tu dispositivo (se guarda como link temporal en el navegador) o pegá una URL directa a un archivo de audio.<br>
-          Para un funcionamiento estable a largo plazo, usá URLs públicas (Google Drive, Dropbox, servidores de audio).
+          💡 <strong>Cómo subir tu música:</strong><br>
+          1. Subí el MP3 a tu Google Drive<br>
+          2. Clic derecho → <strong>Compartir</strong> → cambiá el acceso a <strong>"Cualquier usuario con el enlace"</strong><br>
+          3. Copiá ese link y pegalo abajo tal cual te lo da Google Drive — <strong>la tienda lo convierte sola</strong> al formato reproducible, no necesitás ninguna herramienta externa.
         </div>
         <div class="form-group"><label>Nombre de la pista *</label><input type="text" id="m-name" placeholder="Ej: Hotel California — Eagles"></div>
         <div class="form-group"><label>Artista</label><input type="text" id="m-artist" placeholder="Ej: Eagles"></div>
 
         <div style="display:flex;gap:10px;margin-bottom:10px;">
-          <button onclick="setAudioMode('file')" id="aud-mode-file" style="flex:1;padding:7px;border-radius:5px;cursor:pointer;border:1px solid var(--neon-purple);background:rgba(200,0,255,0.08);color:var(--neon-purple);font-family:var(--font-deco);font-size:.82rem;">📁 Subir MP3</button>
-          <button onclick="setAudioMode('url')"  id="aud-mode-url"  style="flex:1;padding:7px;border-radius:5px;cursor:pointer;border:1px solid rgba(255,255,255,0.12);background:transparent;color:var(--text-muted);font-family:var(--font-deco);font-size:.82rem;">🔗 Pegar URL</button>
+          <button onclick="setAudioMode('file')" id="aud-mode-file" style="flex:1;padding:7px;border-radius:5px;cursor:pointer;border:1px solid rgba(255,255,255,0.12);background:transparent;color:var(--text-muted);font-family:var(--font-deco);font-size:.82rem;">📁 Subir MP3 (solo demo local)</button>
+          <button onclick="setAudioMode('url')"  id="aud-mode-url"  style="flex:1;padding:7px;border-radius:5px;cursor:pointer;border:1px solid var(--neon-purple);background:rgba(200,0,255,0.08);color:var(--neon-purple);font-family:var(--font-deco);font-size:.82rem;">🔗 Pegar link de Google Drive</button>
         </div>
 
-        <div id="aud-file-zone">
+        <div id="aud-file-zone" style="display:none;">
           <div class="audio-upload-area" onclick="document.getElementById('aud-file-input').click()" ondragover="dragOver(event,'aud-file-zone')" ondrop="dropFile(event,'audio')">
             <div style="font-size:1.8rem;">🎵</div>
             <p>Hacé clic o arrastrá un archivo de audio<br><span style="font-size:.7rem;">(MP3, OGG, WAV)</span></p>
@@ -1082,8 +1092,11 @@ footer p { font-size:.75rem; color:var(--text-muted); }
           <div class="upload-progress" id="aud-progress"><div class="upload-progress-fill" id="aud-progress-fill"></div></div>
           <div id="aud-file-name" style="font-size:.75rem;color:var(--neon-purple);margin-top:6px;display:none;"></div>
         </div>
-        <div id="aud-url-zone" style="display:none;">
-          <div class="form-group" style="margin:0;"><label>URL del audio (MP3 público)</label><input type="text" id="m-url" placeholder="https://... .mp3"></div>
+        <div id="aud-url-zone">
+          <div class="form-group" style="margin:0;">
+            <label>Link de Google Drive (o cualquier URL directa de audio)</label>
+            <input type="text" id="m-url" placeholder="https://drive.google.com/file/d/.../view?usp=sharing">
+          </div>
         </div>
 
         <button class="btn-save" style="margin-top:12px;" onclick="addTrack()">💾 AGREGAR AL TRACKLIST</button>
@@ -1097,11 +1110,28 @@ footer p { font-size:.75rem; color:var(--text-muted); }
 
     <!-- SETTINGS TAB -->
     <div id="tab-settings" class="admin-section">
+      <div class="admin-card" style="border-color:rgba(0,230,118,0.3);">
+        <h3 style="color:#00e676;text-shadow:0 0 6px #00e676;">📲 WHATSAPP — Recepción de Pedidos</h3>
+        <div class="settings-info" style="background:rgba(0,230,118,0.06);border-color:rgba(0,230,118,0.2);color:#00e676;">
+          Este número recibe dos cosas: 1) el <strong>pedido completo</strong> cuando un cliente compra (productos, cantidades, total y sus datos), y 2) las <strong>consultas</strong> que escriban en el formulario de Contacto.
+        </div>
+        <div class="form-group">
+          <label>Tu número de WhatsApp (con código de país, sin espacios ni +)</label>
+          <input type="text" id="s-whatsapp" placeholder="Ej: 5491122334455">
+        </div>
+      </div>
       <div class="admin-card">
         <h3>⚙ CONFIGURACIÓN GENERAL</h3>
         <div class="grid-2">
           <div class="form-group"><label>Email de contacto visible</label><input type="text" id="s-email" placeholder="tu@email.com"></div>
-          <div class="form-group"><label>Link MercadoPago / PayPal</label><input type="text" id="s-mp" placeholder="https://mpago.la/..."></div>
+          <div class="form-group"><label>Link fijo de MercadoPago / PayPal</label><input type="text" id="s-mp" placeholder="https://mpago.la/..."></div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group"><label>Link de Instagram</label><input type="text" id="s-instagram" placeholder="https://instagram.com/ecosdelayer"></div>
+          <div class="form-group"><label>Link de TikTok</label><input type="text" id="s-tiktok" placeholder="https://tiktok.com/@ecosdelayer"></div>
+        </div>
+        <div class="settings-info">
+          💡 El link de MercadoPago es <strong>fijo</strong> (no calcula el monto automáticamente). El cliente lo va a usar como referencia y vos confirmás el cobro manualmente al recibir el pedido por WhatsApp.
         </div>
         <div class="form-group"><label>Datos bancarios (transferencia)</label><textarea id="s-bank" rows="3" placeholder="CBU: ...&#10;Alias: ...&#10;Titular: ..."></textarea></div>
         <div class="admin-card" style="margin:0;border-color:rgba(0,229,255,0.1);">
@@ -1114,7 +1144,14 @@ footer p { font-size:.75rem; color:var(--text-muted); }
             <div class="form-group"><label>Email administrador</label><input type="text" id="s-admin-email" placeholder="admin@email.com"></div>
           </div>
         </div>
-        <div class="form-group" style="margin-top:14px;"><label>Nueva contraseña del panel admin</label><input type="password" id="s-pass" placeholder="(dejar vacío para no cambiar)"></div>
+
+        <div class="admin-card" style="margin:0;border-color:rgba(200,0,255,0.25);">
+          <h3 style="color:var(--neon-purple);font-size:1rem;margin-bottom:12px;">🔐 ACCESO AL PANEL ADMIN</h3>
+          <div class="settings-info" style="background:rgba(200,0,255,0.05);border-color:rgba(200,0,255,0.2);color:var(--neon-purple);">
+            El acceso ahora usa <strong>Firebase Authentication</strong> (más seguro). Para agregar o quitar personas que pueden administrar la tienda, entrá a tu <strong>Firebase Console → Authentication → Users</strong>.
+          </div>
+          <button class="btn-save" onclick="resetMyPassword()">✉ ENVIARME UN LINK PARA CAMBIAR MI CONTRASEÑA</button>
+        </div>
         <button class="btn-save" onclick="saveSettings()">💾 GUARDAR CONFIGURACIÓN</button>
       </div>
     </div>
@@ -1126,6 +1163,35 @@ footer p { font-size:.75rem; color:var(--text-muted); }
 ============================================= -->
 <script>
 'use strict';
+
+// ============================================================
+//  🔥 CONFIGURACIÓN DE FIREBASE — PEGÁ TUS DATOS ACÁ
+//  Los sacás de: Firebase Console → ⚙ Configuración del proyecto
+//  → "Tus apps" → app web → "Config"
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyDo_jeZ25qCvhKjh6oc6XziXmKDPa_rrLc",
+  authDomain: "ecosdelayer-cd396.firebaseapp.com",
+  projectId: "ecosdelayer-cd396",
+  storageBucket: "ecosdelayer-cd396.firebasestorage.app",
+  messagingSenderId: "423841633142",
+  appId: "1:423841633142:web:761cf322352431e0596057",
+  measurementId: "G-MD9HPRTZLQ"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const FIREBASE_READY = firebaseConfig.apiKey !== "AIzaSyDo_jeZ25qCvhKjh6oc6XziXmKDPa_rrLc";
+
+let fbApp, db, fbAuth;
+if (FIREBASE_READY) {
+  fbApp  = firebase.initializeApp(firebaseConfig);
+  db     = firebase.firestore();
+  fbAuth = firebase.auth();
+} else {
+  console.warn('⚠ Firebase no está configurado todavía. La tienda funciona en modo demo local (LocalStorage). Mirá el README para conectar Firebase.');
+}
 
 // ============================================================
 //  STATE
@@ -1140,29 +1206,131 @@ let currentIdx = 0;
 let isPlaying = false;
 let isShuffle = false;
 let imgMode = 'file';   // 'file' | 'url'
-let audMode = 'file';   // 'file' | 'url'
-let pendingAudioBlob = null;  // ObjectURL for uploaded audio
-let pendingImgData = null;    // base64 for uploaded image
+let audMode = 'url';    // 'file' | 'url'  — con Firebase recomendamos URL para música
+let pendingAudioBlob = null;  // base64 para audio subido (solo modo demo local)
+let pendingImgData = null;    // base64 para imagen subida
+let isAdminLoggedIn = false;
 
 const DEFAULT_PASS = 'admin1234';
 const audio = document.getElementById('audio-el');
 
 // ============================================================
-//  LOCALSTORAGE HELPERS
-//  — Para migrar a Firebase/Supabase: reemplazar ls()/lsSet()
-//    con llamadas a la API correspondiente
+//  LOCALSTORAGE HELPERS — fallback cuando Firebase no está configurado
 // ============================================================
 const ls  = k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
 const lsS = (k,v) => localStorage.setItem(k, JSON.stringify(v));
 
-function loadData() {
-  products = ls('eda_products') || defaultProducts();
-  tracks   = ls('eda_tracks')   || defaultTracks();
-  settings = ls('eda_settings') || defaultSettings();
+// ============================================================
+//  DATA LAYER — Firestore (en vivo) o LocalStorage (demo local)
+// ============================================================
+// Aplica los datos de configuración (email, redes, banco) a la vitrina pública
+function applySettingsToStorefront() {
+  document.getElementById('display-email').textContent = settings.email || 'ecosdelayer@email.com';
+  document.getElementById('bank-info-box').textContent = settings.bankInfo || '';
+
+  // Instagram / TikTok
+  const igEl = document.getElementById('social-ig');
+  const tkEl = document.getElementById('social-tk');
+  if (settings.instagram) { igEl.href = settings.instagram; igEl.style.display = 'flex'; }
+  else { igEl.style.display = 'none'; }
+  if (settings.tiktok) { tkEl.href = settings.tiktok; tkEl.style.display = 'flex'; }
+  else { tkEl.style.display = 'none'; }
+
+  const socialText = document.getElementById('display-social');
+  const handles = [];
+  if (settings.instagram) handles.push('Instagram');
+  if (settings.tiktok) handles.push('TikTok');
+  socialText.textContent = handles.length ? handles.join(' / ') : 'Seguinos en redes (próximamente)';
 }
-const saveProducts = () => lsS('eda_products', products);
-const saveTracks   = () => lsS('eda_tracks',   tracks);
-const saveAllSett  = () => lsS('eda_settings',  settings);
+
+function loadData() {
+  if (FIREBASE_READY) {
+    // Productos en tiempo real
+    db.collection('products').orderBy('id').onSnapshot(snap => {
+      products = snap.docs.map(d => d.data());
+      renderProducts(activeFilter);
+      if (isAdminLoggedIn) { renderAdminTable(); }
+    }, err => console.error('Firestore products error:', err));
+
+    // Música en tiempo real
+    db.collection('tracks').orderBy('id').onSnapshot(snap => {
+      tracks = snap.docs.map(d => d.data());
+      if (isAdminLoggedIn) { renderAdminMusic(); }
+      if (!audio.src && tracks.length) loadTrack(0);
+    }, err => console.error('Firestore tracks error:', err));
+
+    // Configuración en tiempo real
+    db.collection('settings').doc('main').onSnapshot(doc => {
+      settings = doc.exists ? doc.data() : defaultSettings();
+      applySettingsToStorefront();
+      if (isAdminLoggedIn) loadSettingsForm();
+    }, err => console.error('Firestore settings error:', err));
+
+    // Si la colección está vacía (primera vez), la sembramos con datos de ejemplo
+    db.collection('products').limit(1).get().then(snap => {
+      if (snap.empty) defaultProducts().forEach(p => db.collection('products').doc(String(p.id)).set(p));
+    });
+    db.collection('tracks').limit(1).get().then(snap => {
+      if (snap.empty) defaultTracks().forEach(t => db.collection('tracks').doc(String(t.id)).set(t));
+    });
+    db.collection('settings').doc('main').get().then(doc => {
+      if (!doc.exists) db.collection('settings').doc('main').set(defaultSettings());
+    });
+  } else {
+    // Modo demo local (sin Firebase configurado)
+    products = ls('eda_products') || defaultProducts();
+    tracks   = ls('eda_tracks')   || defaultTracks();
+    settings = ls('eda_settings') || defaultSettings();
+  }
+}
+
+// Guarda/actualiza UN producto (Firestore o LocalStorage)
+function persistProduct(p) {
+  if (FIREBASE_READY) {
+    return db.collection('products').doc(String(p.id)).set(p);
+  } else {
+    const idx = products.findIndex(x => x.id === p.id);
+    if (idx >= 0) products[idx] = p; else products.push(p);
+    lsS('eda_products', products);
+    return Promise.resolve();
+  }
+}
+function removeProductRemote(id) {
+  if (FIREBASE_READY) {
+    return db.collection('products').doc(String(id)).delete();
+  } else {
+    products = products.filter(p => p.id !== id);
+    lsS('eda_products', products);
+    return Promise.resolve();
+  }
+}
+function persistTrack(t) {
+  if (FIREBASE_READY) {
+    return db.collection('tracks').doc(String(t.id)).set(t);
+  } else {
+    const idx = tracks.findIndex(x => x.id === t.id);
+    if (idx >= 0) tracks[idx] = t; else tracks.push(t);
+    lsS('eda_tracks', tracks);
+    return Promise.resolve();
+  }
+}
+function removeTrackRemote(id) {
+  if (FIREBASE_READY) {
+    return db.collection('tracks').doc(String(id)).delete();
+  } else {
+    tracks = tracks.filter(t => t.id !== id);
+    lsS('eda_tracks', tracks);
+    return Promise.resolve();
+  }
+}
+function persistSettings() {
+  if (FIREBASE_READY) {
+    return db.collection('settings').doc('main').set(settings, { merge: true });
+  } else {
+    lsS('eda_settings', settings);
+    return Promise.resolve();
+  }
+}
 
 // ============================================================
 //  DEFAULTS
@@ -1185,8 +1353,9 @@ function defaultTracks() {
 }
 function defaultSettings() {
   return {
-    email:'ecosdelayer@email.com', mpLink:'', bankInfo:'CBU: 0000000000000000000001\nAlias: ECOS.DEL.AYER\nTitular: Ecos del Ayer Store',
-    ejsPub:'', ejsSvc:'', ejsTpl:'', adminEmail:'', adminPass: DEFAULT_PASS,
+    email:'ecosdelayer@email.com', whatsapp:'', mpLink:'', bankInfo:'CBU: 0000000000000000000001\nAlias: ECOS.DEL.AYER\nTitular: Ecos del Ayer Store',
+    instagram:'', tiktok:'',
+    ejsPub:'', ejsSvc:'', ejsTpl:'', adminEmail:'', adminUser:'admin', adminPass: DEFAULT_PASS,
   };
 }
 
@@ -1324,17 +1493,58 @@ function selPay(type) {
   document.getElementById('bank-info-box').style.display=type==='transfer'?'block':'none';
 }
 
+function buildOrderMessage(name, phone, email, addr, payLabel, orderId) {
+  const lines = [];
+  lines.push(`🎸 *NUEVO PEDIDO — Ecos del Ayer Store*`);
+  lines.push(`Pedido #${orderId}`);
+  lines.push('');
+  lines.push(`👤 *Cliente:* ${name}`);
+  if (phone) lines.push(`📱 *Teléfono:* ${phone}`);
+  lines.push(`📧 *Email:* ${email}`);
+  lines.push(`📍 *Dirección:* ${addr}`);
+  lines.push(`💳 *Medio de pago:* ${payLabel}`);
+  lines.push('');
+  lines.push(`🛒 *Detalle del pedido:*`);
+  cart.forEach(it => {
+    lines.push(`• ${it.title} — Cant: ${it.qty} × $${it.price.toLocaleString('es-AR')} = $${(it.qty*it.price).toLocaleString('es-AR')}`);
+  });
+  const total = cart.reduce((a,c)=>a+c.price*c.qty,0);
+  lines.push('');
+  lines.push(`💰 *TOTAL: $${total.toLocaleString('es-AR')}*`);
+  return lines.join('\n');
+}
+
 function confirmOrder() {
   const name=document.getElementById('ch-name').value.trim();
+  const phone=document.getElementById('ch-phone').value.trim();
   const email=document.getElementById('ch-email').value.trim();
   const addr=document.getElementById('ch-addr').value.trim();
   if (!name||!email||!addr) { toast('⚠ Completá los campos obligatorios'); return; }
+
+  if (!settings.whatsapp) {
+    toast('⚠ La tienda no tiene un número de WhatsApp configurado. Avisale al administrador.');
+    return;
+  }
+
+  // Reducir stock
   cart.forEach(it=>{
     const p=products.find(x=>x.id===it.id);
-    if (p) p.stock=Math.max(0,p.stock-it.qty);
+    if (p) { p.stock=Math.max(0,p.stock-it.qty); persistProduct(p); }
   });
-  saveProducts();
-  if (activePay==='mp'&&settings.mpLink) window.open(settings.mpLink,'_blank');
+
+  const payLabels = { transfer:'Transferencia / Depósito', efectivo:'Efectivo', mp:'MercadoPago / PayPal' };
+  const orderId = Date.now().toString().slice(-6);
+  const message = buildOrderMessage(name, phone, email, addr, payLabels[activePay]||activePay, orderId);
+
+  // Abrir WhatsApp con el pedido pre-cargado
+  const waUrl = `https://wa.me/${settings.whatsapp}?text=${encodeURIComponent(message)}`;
+  window.open(waUrl, '_blank');
+
+  // Si el medio de pago es MercadoPago y hay link fijo configurado, abrirlo también
+  if (activePay==='mp' && settings.mpLink) {
+    window.open(settings.mpLink,'_blank');
+  }
+
   document.getElementById('checkout-form-wrap').style.display='none';
   document.getElementById('order-ok').style.display='block';
   renderProducts(activeFilter);
@@ -1343,6 +1553,19 @@ function confirmOrder() {
 // ============================================================
 //  CONTACT
 // ============================================================
+function buildContactMessage(name, email, subject, message) {
+  const lines = [];
+  lines.push(`💬 *NUEVA CONSULTA — Ecos del Ayer Store*`);
+  lines.push('');
+  lines.push(`👤 *Nombre:* ${name}`);
+  lines.push(`📧 *Correo:* ${email}`);
+  if (subject) lines.push(`📌 *Asunto:* ${subject}`);
+  lines.push('');
+  lines.push(`📝 *Mensaje:*`);
+  lines.push(message);
+  return lines.join('\n');
+}
+
 function sendContact() {
   const name=document.getElementById('c-name').value.trim();
   const email=document.getElementById('c-email').value.trim();
@@ -1350,15 +1573,32 @@ function sendContact() {
   const message=document.getElementById('c-message').value.trim();
   if (!name||!email||!message) { toast('⚠ Completá todos los campos'); return; }
 
+  let sentSomewhere = false;
+
+  // WhatsApp
+  if (settings.whatsapp) {
+    const waMsg = buildContactMessage(name, email, subject, message);
+    const waUrl = `https://wa.me/${settings.whatsapp}?text=${encodeURIComponent(waMsg)}`;
+    window.open(waUrl, '_blank');
+    sentSomewhere = true;
+  }
+
+  // Email (si está configurado EmailJS)
   if (settings.ejsPub && settings.ejsSvc && settings.ejsTpl) {
     emailjs.init(settings.ejsPub);
     emailjs.send(settings.ejsSvc, settings.ejsTpl, {
       from_name:name, from_email:email, subject, message,
       to_email:settings.adminEmail||settings.email,
     }).catch(()=>{});
-  } else {
-    console.log('ContactForm (demo):', {name,email,subject,message});
+    sentSomewhere = true;
   }
+
+  if (!sentSomewhere) {
+    console.log('ContactForm (demo, sin WhatsApp ni EmailJS configurado):', {name,email,subject,message});
+    toast('⚠ La tienda no tiene WhatsApp ni email configurado para recibir consultas');
+    return;
+  }
+
   document.getElementById('contact-ok').style.display='block';
   ['c-name','c-email','c-subject','c-message'].forEach(id=>document.getElementById(id).value='');
   setTimeout(()=>document.getElementById('contact-ok').style.display='none',5000);
@@ -1526,15 +1766,47 @@ function toast(msg) {
 }
 
 // ============================================================
-//  ADMIN AUTH
+//  ADMIN AUTH — Firebase Authentication
 // ============================================================
 function doLogin() {
+  const email=document.getElementById('admin-user').value.trim();
   const pass=document.getElementById('admin-pass').value;
-  const stored=(ls('eda_settings')||{}).adminPass||DEFAULT_PASS;
-  if (pass===stored) { document.getElementById('login-err').style.display='none'; showView('admin'); }
-  else { document.getElementById('login-err').style.display='block'; }
+
+  if (!FIREBASE_READY) {
+    // Modo demo local sin Firebase configurado todavía
+    if (pass===DEFAULT_PASS) {
+      document.getElementById('login-err').style.display='none';
+      isAdminLoggedIn=true;
+      showView('admin');
+    } else {
+      document.getElementById('login-err').textContent='⚠ Firebase no está configurado. Usá la contraseña demo: admin1234';
+      document.getElementById('login-err').style.display='block';
+    }
+    return;
+  }
+
+  if (!email || !pass) { toast('⚠ Completá email y contraseña'); return; }
+
+  fbAuth.signInWithEmailAndPassword(email, pass).then(()=>{
+    document.getElementById('login-err').style.display='none';
+    document.getElementById('admin-pass').value='';
+    isAdminLoggedIn=true;
+    showView('admin');
+  }).catch(err=>{
+    console.error(err);
+    document.getElementById('login-err').textContent='❌ Email o contraseña incorrectos';
+    document.getElementById('login-err').style.display='block';
+  });
 }
-function doLogout() { document.getElementById('admin-pass').value=''; showView('store'); }
+
+function doLogout() {
+  isAdminLoggedIn=false;
+  document.getElementById('admin-user').value='';
+  document.getElementById('admin-pass').value='';
+  history.replaceState(null, '', window.location.pathname);
+  if (FIREBASE_READY) fbAuth.signOut();
+  showView('store');
+}
 
 // ============================================================
 //  ADMIN — Products table
@@ -1570,13 +1842,17 @@ function renderAdminTable() {
 
 function quickStock(id,d) {
   const p=products.find(x=>x.id===id); if(!p) return;
-  p.stock=Math.max(0,p.stock+d); saveProducts(); renderAdminTable(); renderProducts(activeFilter);
+  p.stock=Math.max(0,p.stock+d);
+  persistProduct(p);
+  if (!FIREBASE_READY) { renderAdminTable(); renderProducts(activeFilter); }
 }
 
 function delProduct(id) {
   if (!confirm('¿Eliminar este producto?')) return;
-  products=products.filter(p=>p.id!==id); saveProducts(); renderAdminTable(); renderProducts(activeFilter);
-  toast('✓ Producto eliminado');
+  removeProductRemote(id).then(()=>{
+    if (!FIREBASE_READY) { renderAdminTable(); renderProducts(activeFilter); }
+    toast('✓ Producto eliminado');
+  });
 }
 
 function editProduct(id) {
@@ -1715,23 +1991,58 @@ function saveProduct() {
     toast('⚠ Completá todos los campos y subí una imagen'); return;
   }
 
-  if (editId) {
-    const p=products.find(x=>x.id===parseInt(editId));
-    if (p) { p.title=title; p.category=cat; p.price=price; p.stock=stock; p.img=img; p.dims=dims; }
-    toast('✓ Producto actualizado');
-  } else {
-    const newId=products.length>0?Math.max(...products.map(p=>p.id))+1:1;
-    products.push({id:newId,title,category:cat,price,stock,img,dims});
-    toast('✓ Producto agregado');
+  if (FIREBASE_READY && imgMode==='file' && img.length > 700000) {
+    toast('⚠ La imagen es muy pesada para guardar en la base de datos. Usá una más liviana o pegá una URL.');
+    return;
   }
 
-  saveProducts(); cancelEdit(); renderAdminTable(); renderProducts(activeFilter);
-  aTab('products',document.querySelectorAll('.admin-tab')[0]);
+  let productData;
+  if (editId) {
+    const existing=products.find(x=>x.id===parseInt(editId));
+    productData = { id: parseInt(editId), title, category:cat, price, stock, img, dims };
+    if (existing) Object.assign(existing, productData); // optimistic local update
+  } else {
+    const newId = FIREBASE_READY ? Date.now() : (products.length>0?Math.max(...products.map(p=>p.id))+1:1);
+    productData = { id:newId, title, category:cat, price, stock, img, dims };
+  }
+
+  persistProduct(productData).then(()=>{
+    toast(editId ? '✓ Producto actualizado' : '✓ Producto agregado');
+    cancelEdit();
+    if (!FIREBASE_READY) { renderAdminTable(); renderProducts(activeFilter); }
+    aTab('products',document.querySelectorAll('.admin-tab')[0]);
+  }).catch(err=>{
+    console.error(err);
+    toast('⚠ Error al guardar. Revisá tu conexión a Firebase.');
+  });
 }
 
 // ============================================================
 //  ADMIN — Music
 // ============================================================
+
+// Convierte un link de "Compartir" de Google Drive en un link directo reproducible.
+// Acepta los formatos típicos que copia el botón "Compartir" de Drive:
+//   https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+//   https://drive.google.com/open?id=FILE_ID
+//   https://drive.google.com/uc?id=FILE_ID&export=download  (ya convertido)
+// Si la URL no es de Google Drive, la devuelve sin cambios.
+function convertGoogleDriveLink(url) {
+  if (!url) return url;
+  if (!url.includes('drive.google.com')) return url;
+
+  let fileId = null;
+  const m1 = url.match(/\/file\/d\/([^/]+)/);      // .../file/d/FILE_ID/view
+  const m2 = url.match(/[?&]id=([^&]+)/);           // ...open?id=FILE_ID  o  ...uc?id=FILE_ID
+
+  if (m1) fileId = m1[1];
+  else if (m2) fileId = m2[1];
+
+  if (!fileId) return url; // no se pudo detectar el ID, se deja como vino
+
+  return `https://drive.google.com/uc?export=download&id=${fileId}`;
+}
+
 function addTrack() {
   const name=document.getElementById('m-name').value.trim();
   const artist=document.getElementById('m-artist').value.trim();
@@ -1739,37 +2050,50 @@ function addTrack() {
 
   let url=''; let blobUrl=null; let blobData=null;
   if (audMode==='file'&&pendingAudioBlob) {
-    // Store the base64 data — it will work as audio src
-    // Note: large files may hit localStorage limits; URL is better for big files
+    if (FIREBASE_READY) {
+      toast('⚠ Con Firebase conectado, los archivos de audio subidos no se pueden sincronizar (son muy pesados). Usá la opción "Pegar URL" con Google Drive.');
+      return;
+    }
     blobData=pendingAudioBlob;
-    blobUrl=pendingAudioBlob; // base64 dataURL works directly as audio src
+    blobUrl=pendingAudioBlob; // base64 dataURL — solo funciona en modo demo local
   } else if (audMode==='url') {
-    url=document.getElementById('m-url')?.value.trim()||'';
+    const rawUrl = document.getElementById('m-url')?.value.trim()||'';
+    const wasDrive = rawUrl.includes('drive.google.com');
+    url = convertGoogleDriveLink(rawUrl);
+    if (wasDrive && url !== rawUrl) {
+      toast('🔄 Link de Google Drive detectado y convertido automáticamente');
+    }
   }
 
   if (!url&&!blobUrl) { toast('⚠ Subí un archivo o pegá una URL de audio'); return; }
 
-  const newId=tracks.length>0?Math.max(...tracks.map(t=>t.id))+1:1;
-  tracks.push({id:newId,name,artist,url,blobUrl:blobUrl||'',blob:!!blobData});
-  saveTracks();
-  renderAdminMusic();
-  loadTrack(tracks.length-1); // load new track
+  const newId = FIREBASE_READY ? Date.now() : (tracks.length>0?Math.max(...tracks.map(t=>t.id))+1:1);
+  const trackData = {id:newId,name,artist,url,blobUrl:blobUrl||'',blob:!!blobData};
 
-  document.getElementById('m-name').value='';
-  document.getElementById('m-artist').value='';
-  if (document.getElementById('m-url')) document.getElementById('m-url').value='';
-  document.getElementById('aud-file-name').style.display='none';
-  pendingAudioBlob=null;
-  toast('✓ Pista agregada al tracklist');
+  persistTrack(trackData).then(()=>{
+    toast('✓ Pista agregada al tracklist');
+    document.getElementById('m-name').value='';
+    document.getElementById('m-artist').value='';
+    if (document.getElementById('m-url')) document.getElementById('m-url').value='';
+    document.getElementById('aud-file-name').style.display='none';
+    pendingAudioBlob=null;
+    if (!FIREBASE_READY) { renderAdminMusic(); loadTrack(tracks.length-1); }
+  }).catch(err=>{
+    console.error(err);
+    toast('⚠ Error al guardar la pista. Revisá tu conexión a Firebase.');
+  });
 }
 
 function delTrack(id) {
-  tracks=tracks.filter(t=>t.id!==id);
-  if (currentIdx>=tracks.length) currentIdx=0;
-  saveTracks(); renderAdminMusic();
-  if (tracks.length) loadTrack(currentIdx);
-  else { audio.src=''; document.getElementById('player-track-name').textContent='Sin pista seleccionada'; }
-  toast('✓ Pista eliminada');
+  removeTrackRemote(id).then(()=>{
+    if (currentIdx>=tracks.length) currentIdx=0;
+    if (!FIREBASE_READY) {
+      renderAdminMusic();
+      if (tracks.length) loadTrack(currentIdx);
+      else { audio.src=''; document.getElementById('player-track-name').textContent='Sin pista seleccionada'; }
+    }
+    toast('✓ Pista eliminada');
+  });
 }
 
 function renderAdminMusic() {
@@ -1792,7 +2116,10 @@ function renderAdminMusic() {
 // ============================================================
 function loadSettingsForm() {
   document.getElementById('s-email').value=settings.email||'';
+  document.getElementById('s-whatsapp').value=settings.whatsapp||'';
   document.getElementById('s-mp').value=settings.mpLink||'';
+  document.getElementById('s-instagram').value=settings.instagram||'';
+  document.getElementById('s-tiktok').value=settings.tiktok||'';
   document.getElementById('s-bank').value=settings.bankInfo||'';
   document.getElementById('s-ejs-pub').value=settings.ejsPub||'';
   document.getElementById('s-ejs-svc').value=settings.ejsSvc||'';
@@ -1801,19 +2128,40 @@ function loadSettingsForm() {
 }
 
 function saveSettings() {
-  const newPass=document.getElementById('s-pass').value;
   settings.email=document.getElementById('s-email').value.trim();
+  settings.whatsapp=document.getElementById('s-whatsapp').value.trim().replace(/[^0-9]/g,'');
   settings.mpLink=document.getElementById('s-mp').value.trim();
+  settings.instagram=document.getElementById('s-instagram').value.trim();
+  settings.tiktok=document.getElementById('s-tiktok').value.trim();
   settings.bankInfo=document.getElementById('s-bank').value.trim();
   settings.ejsPub=document.getElementById('s-ejs-pub').value.trim();
   settings.ejsSvc=document.getElementById('s-ejs-svc').value.trim();
   settings.ejsTpl=document.getElementById('s-ejs-tpl').value.trim();
   settings.adminEmail=document.getElementById('s-admin-email').value.trim();
-  if (newPass) settings.adminPass=newPass;
-  saveAllSett();
-  document.getElementById('display-email').textContent=settings.email;
-  document.getElementById('bank-info-box').textContent=settings.bankInfo;
-  toast('✓ Configuración guardada');
+
+  persistSettings().then(()=>{
+    applySettingsToStorefront();
+    if (!settings.whatsapp) {
+      toast('⚠ Guardado, pero falta tu número de WhatsApp para recibir pedidos');
+    } else {
+      toast('✓ Configuración guardada');
+    }
+  }).catch(err=>{
+    console.error(err);
+    toast('⚠ Error al guardar. Revisá tu conexión a Firebase.');
+  });
+}
+
+function resetMyPassword() {
+  if (!FIREBASE_READY) { toast('⚠ Conectá Firebase primero (ver README)'); return; }
+  const user = fbAuth.currentUser;
+  if (!user || !user.email) { toast('⚠ No se detectó tu email de sesión'); return; }
+  fbAuth.sendPasswordResetEmail(user.email).then(()=>{
+    toast(`✓ Te enviamos un link a ${user.email} para cambiar tu contraseña`);
+  }).catch(err=>{
+    console.error(err);
+    toast('⚠ No se pudo enviar el email. Intentá de nuevo.');
+  });
 }
 
 // ============================================================
@@ -1829,6 +2177,31 @@ function aTab(name,btn) {
 // ============================================================
 //  INIT
 // ============================================================
+// ============================================================
+//  RUTA SECRETA — solo vos sabés que existe
+// ============================================================
+const SECRET_HASH = '#enki605';
+
+function checkHash() {
+  if (window.location.hash === SECRET_HASH) {
+    // Si ya hay sesión activa de Firebase, entra directo al panel
+    if (FIREBASE_READY && fbAuth.currentUser) {
+      isAdminLoggedIn = true;
+      showView('admin');
+    } else {
+      showView('adminLogin');
+    }
+  }
+}
+
+window.addEventListener('hashchange', () => {
+  if (window.location.hash === SECRET_HASH) {
+    checkHash();
+  } else if (window.location.hash === '') {
+    showView('store');
+  }
+});
+
 function init() {
   loadData();
   renderProducts(activeFilter);
@@ -1836,13 +2209,22 @@ function init() {
   loadTrack(0);
   document.getElementById('vol-slider').value=0.7;
   audio.volume=0.7;
-  document.getElementById('display-email').textContent=settings.email||'ecosdelayer@email.com';
-  document.getElementById('bank-info-box').textContent=settings.bankInfo||'';
+  applySettingsToStorefront();
   updateCartUI();
-  showView('store');
+
+  if (FIREBASE_READY) {
+    fbAuth.onAuthStateChanged(user => {
+      isAdminLoggedIn = !!user;
+      if (window.location.hash === SECRET_HASH) checkHash();
+    });
+  }
+
+  checkHash(); // revisar si ya hay hash al cargar
+  if (window.location.hash !== SECRET_HASH) showView('store');
 }
 
 init();
 </script>
 </body>
 </html>
+

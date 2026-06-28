@@ -416,6 +416,47 @@ body::before {
 }
 .product-card:hover .product-img-wrap img { transform:scale(1.06); }
 
+/* Carrusel de fotos */
+.carousel-wrap { position:relative; padding-top:72%; overflow:hidden; background:#0a0a1e; }
+.carousel-slides { position:absolute; inset:0; display:flex; transition:transform .35s ease; }
+.carousel-slide { min-width:100%; height:100%; flex-shrink:0; }
+.carousel-slide img { width:100%; height:100%; object-fit:cover; display:block; }
+.carousel-btn {
+  position:absolute; top:50%; transform:translateY(-50%);
+  background:rgba(0,0,0,0.55); border:none; color:#fff;
+  width:28px; height:28px; border-radius:50%; cursor:pointer;
+  font-size:.85rem; display:flex; align-items:center; justify-content:center;
+  z-index:10; transition:background .2s;
+}
+.carousel-btn:hover { background:rgba(0,229,255,0.5); }
+.carousel-prev { left:6px; }
+.carousel-next { right:6px; }
+.carousel-dots {
+  position:absolute; bottom:6px; left:50%; transform:translateX(-50%);
+  display:flex; gap:4px; z-index:10;
+}
+.carousel-dot {
+  width:6px; height:6px; border-radius:50%;
+  background:rgba(255,255,255,0.35); cursor:pointer; transition:background .2s;
+}
+.carousel-dot.active { background:var(--neon-cyan); }
+
+/* Precio ARS */
+.price-ars-label { font-size:.6rem; color:var(--text-muted); letter-spacing:1px; display:block; margin-bottom:-4px; }
+
+/* Admin: grid de fotos subidas */
+.imgs-grid { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.img-thumb-wrap { position:relative; width:80px; height:80px; }
+.img-thumb-wrap img { width:100%; height:100%; object-fit:cover; border-radius:6px; border:1px solid var(--border-glow); }
+.img-thumb-remove {
+  position:absolute; top:-6px; right:-6px;
+  background:var(--neon-pink); border:none; color:#fff;
+  width:18px; height:18px; border-radius:50%; cursor:pointer;
+  font-size:.7rem; display:flex; align-items:center; justify-content:center;
+  box-shadow:0 0 6px rgba(255,45,120,0.5);
+}
+.img-thumb-main { position:absolute; bottom:-6px; left:50%; transform:translateX(-50%); font-size:.55rem; background:var(--neon-cyan); color:#000; border-radius:4px; padding:1px 4px; white-space:nowrap; }
+
 .product-badge {
   position:absolute; top:10px; left:10px;
   background:var(--neon-pink); color:#fff;
@@ -837,6 +878,8 @@ footer p { font-size:.75rem; color:var(--text-muted); }
       <button class="filter-btn" onclick="filterProds('Auriculares',this)">🎧 Auriculares</button>
       <button class="filter-btn" onclick="filterProds('Teclados',this)">⌨ Teclados</button>
       <button class="filter-btn" onclick="filterProds('TV Box',this)">📺 TV Box</button>
+      <button class="filter-btn" onclick="filterProds('Tazas personalizadas',this)">☕ Tazas</button>
+      <button class="filter-btn" onclick="filterProds('Otros',this)">✨ Otros</button>
     </div>
     <div id="products-grid"></div>
   </section>
@@ -1025,6 +1068,8 @@ footer p { font-size:.75rem; color:var(--text-muted); }
               <option value="Auriculares">🎧 Auriculares</option>
               <option value="Teclados">⌨ Teclados</option>
               <option value="TV Box">📺 TV Box</option>
+              <option value="Tazas personalizadas">☕ Tazas personalizadas</option>
+              <option value="Otros">✨ Otros</option>
             </select>
           </div>
           <div class="form-group"><label>Precio ($) *</label><input type="number" id="p-price" placeholder="Ej: 12500" min="0"></div>
@@ -1032,30 +1077,39 @@ footer p { font-size:.75rem; color:var(--text-muted); }
         </div>
         <div class="form-group"><label>Descripción / Dimensiones</label><input type="text" id="p-dims" placeholder="Ej: 40×60 cm · Con marco negro"></div>
 
-        <!-- IMAGE — file upload OR URL -->
+        <!-- IMÁGENES — múltiples (hasta 10) -->
         <div class="form-group">
-          <label>Imagen del producto *</label>
+          <label>Fotos del producto * (hasta 10 — la primera es la principal)</label>
           <div style="display:flex;gap:10px;margin-bottom:8px;">
-            <button onclick="setImgMode('file')" id="img-mode-file" style="flex:1;padding:7px;border-radius:5px;cursor:pointer;border:1px solid var(--neon-cyan);background:rgba(0,229,255,0.08);color:var(--neon-cyan);font-family:var(--font-deco);font-size:.82rem;">📁 Subir archivo</button>
+            <button onclick="setImgMode('file')" id="img-mode-file" style="flex:1;padding:7px;border-radius:5px;cursor:pointer;border:1px solid var(--neon-cyan);background:rgba(0,229,255,0.08);color:var(--neon-cyan);font-family:var(--font-deco);font-size:.82rem;">📁 Subir fotos</button>
             <button onclick="setImgMode('url')"  id="img-mode-url"  style="flex:1;padding:7px;border-radius:5px;cursor:pointer;border:1px solid rgba(255,255,255,0.12);background:transparent;color:var(--text-muted);font-family:var(--font-deco);font-size:.82rem;">🔗 Pegar URL</button>
           </div>
 
-          <!-- File upload -->
+          <!-- File upload — múltiple -->
           <div id="img-file-zone">
-            <div class="upload-area" id="img-drop-area" onclick="document.getElementById('img-file-input').click()" ondragover="dragOver(event,'img-drop-area')" ondragleave="dragLeave('img-drop-area')" ondrop="dropFile(event,'img')">
+            <div class="upload-area" id="img-drop-area"
+                 onclick="document.getElementById('img-file-input').click()"
+                 ondragover="dragOver(event,'img-drop-area')"
+                 ondragleave="dragLeave('img-drop-area')"
+                 ondrop="dropFile(event,'img')">
               <div class="upload-icon">🖼️</div>
-              <p>Hacé clic o arrastrá una imagen aquí<br><span style="font-size:.7rem;">(JPG, PNG, WEBP · Máx. ~500KB recomendado)</span></p>
+              <p>Hacé clic o arrastrá hasta 10 fotos<br><span style="font-size:.7rem;">(JPG, PNG, WEBP · ~500KB c/u recomendado)</span></p>
             </div>
-            <input type="file" id="img-file-input" accept="image/*" style="display:none;" onchange="handleImgFile(this.files[0])">
+            <input type="file" id="img-file-input" accept="image/*" multiple style="display:none;" onchange="handleImgFiles(this.files)">
             <div class="upload-progress" id="img-progress"><div class="upload-progress-fill" id="img-progress-fill"></div></div>
-            <img id="img-preview" class="img-preview" alt="Preview">
           </div>
 
-          <!-- URL input -->
+          <!-- URL input — una por línea -->
           <div id="img-url-zone" style="display:none;">
-            <input type="text" id="p-img-url" placeholder="https://... (URL directa de la imagen)" oninput="previewUrl()">
-            <img id="img-url-preview" class="img-preview" alt="Preview">
+            <textarea id="p-img-url" rows="4"
+              placeholder="Pegá una URL por línea (hasta 10):&#10;https://...imagen1.jpg&#10;https://...imagen2.jpg"
+              oninput="previewUrls()"
+              style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:var(--text-main);padding:10px 14px;border-radius:6px;font-family:var(--font-body);font-size:.9rem;resize:vertical;outline:none;"></textarea>
           </div>
+
+          <!-- Grid de miniaturas -->
+          <div class="imgs-grid" id="imgs-grid"></div>
+          <p id="imgs-count" style="font-size:.72rem;color:var(--text-muted);margin-top:4px;"></p>
         </div>
 
         <div style="display:flex;gap:12px;margin-top:10px;">
@@ -1170,12 +1224,12 @@ footer p { font-size:.75rem; color:var(--text-muted); }
 //  → "Tus apps" → app web → "Config"
 // ============================================================
 const firebaseConfig = {
-  apiKey: "AIzaSyDo_jeZ25qCvhKjh6oc6XziXmKDPa_rrLc",
-  authDomain: "ecosdelayer-cd396.firebaseapp.com",
-  projectId: "ecosdelayer-cd396",
-  storageBucket: "ecosdelayer-cd396.firebasestorage.app",
-  messagingSenderId: "423841633142",
-  appId: "1:423841633142:web:761cf322352431e0596057"
+  apiKey: "PEGA_TU_API_KEY_ACA",
+  authDomain: "PEGA_TU_AUTH_DOMAIN_ACA",
+  projectId: "PEGA_TU_PROJECT_ID_ACA",
+  storageBucket: "PEGA_TU_STORAGE_BUCKET_ACA",
+  messagingSenderId: "PEGA_TU_SENDER_ID_ACA",
+  appId: "PEGA_TU_APP_ID_ACA"
 };
 
 const FIREBASE_READY = firebaseConfig.apiKey !== "PEGA_TU_API_KEY_ACA";
@@ -1204,7 +1258,7 @@ let isShuffle = false;
 let imgMode = 'file';   // 'file' | 'url'
 let audMode = 'url';    // 'file' | 'url'  — con Firebase recomendamos URL para música
 let pendingAudioBlob = null;  // base64 para audio subido (solo modo demo local)
-let pendingImgData = null;    // base64 para imagen subida
+// pendingImgData reemplazado por pendingImgs[] (array de múltiples fotos)
 let isAdminLoggedIn = false;
 
 const DEFAULT_PASS = 'admin1234';
@@ -1377,15 +1431,29 @@ function renderProducts(filter) {
     return;
   }
   grid.innerHTML = list.map(p => {
+    const imgs = Array.isArray(p.imgs) && p.imgs.length ? p.imgs : (p.img ? [p.img] : []);
+    const hasMany = imgs.length > 1;
+    const carouselId = `car-${p.id}`;
     const inCart = cart.find(c=>c.id===p.id);
     const sc = p.stock===0 ? 'background:rgba(255,45,120,0.18);color:var(--neon-pink)' :
                p.stock<=3  ? 'background:rgba(255,184,0,0.18);color:var(--neon-yellow)' :
                              'background:rgba(0,229,255,0.14);color:var(--neon-cyan)';
     return `
       <div class="product-card">
-        <div class="product-img-wrap">
-          <img src="${p.img}" alt="${p.title}" loading="lazy"
-               onerror="this.src='https://via.placeholder.com/400x300/0e0e22/00e5ff?text=Ecos+del+Ayer'">
+        <div class="carousel-wrap" id="${carouselId}">
+          <div class="carousel-slides" id="${carouselId}-slides">
+            ${imgs.map((src,i)=>`
+              <div class="carousel-slide">
+                <img src="${src}" alt="${p.title} foto ${i+1}" loading="lazy"
+                     onerror="this.src='https://via.placeholder.com/400x300/0e0e22/00e5ff?text=Ecos+del+Ayer'">
+              </div>`).join('')}
+          </div>
+          ${hasMany?`
+          <button class="carousel-btn carousel-prev" onclick="carouselMove('${carouselId}',-1)">‹</button>
+          <button class="carousel-btn carousel-next" onclick="carouselMove('${carouselId}',1)">›</button>
+          <div class="carousel-dots" id="${carouselId}-dots">
+            ${imgs.map((_,i)=>`<div class="carousel-dot${i===0?' active':''}" onclick="carouselGo('${carouselId}',${i},${imgs.length})"></div>`).join('')}
+          </div>`:''}
           ${p.stock>0&&p.stock<=3?`<span class="product-badge">¡Últimas ${p.stock}!</span>`:''}
           ${p.stock===0?`<span class="product-badge" style="background:rgba(80,80,80,0.85);">Agotado</span>`:''}
           <span class="product-stock-badge" style="${sc}">${p.stock===0?'Sin stock':`Stock: ${p.stock}`}</span>
@@ -1395,7 +1463,10 @@ function renderProducts(filter) {
           <h3 class="product-name">${p.title}</h3>
           <p class="product-dims">${p.dims||''}</p>
           <div class="product-footer">
-            <span class="product-price">$${p.price.toLocaleString('es-AR')}</span>
+            <div>
+              <span class="price-ars-label">ARS $</span>
+              <span class="product-price">${p.price.toLocaleString('es-AR')}</span>
+            </div>
             <button class="add-cart-btn" onclick="addToCart(${p.id})" ${p.stock===0?'disabled':''}>
               ${p.stock===0?'AGOTADO': inCart?'✓ EN CARRITO':'+ CARRITO'}
             </button>
@@ -1403,6 +1474,32 @@ function renderProducts(filter) {
         </div>
       </div>`;
   }).join('');
+}
+
+// ============================================================
+//  CARRUSEL DE FOTOS
+// ============================================================
+const carouselState = {}; // { carouselId: currentIndex }
+
+function carouselMove(id, dir) {
+  const slides = document.getElementById(`${id}-slides`);
+  if (!slides) return;
+  const total = slides.children.length;
+  if (total <= 1) return;
+  const cur = carouselState[id] || 0;
+  const next = ((cur + dir) + total) % total;
+  carouselGo(id, next, total);
+}
+
+function carouselGo(id, idx, total) {
+  const slides = document.getElementById(`${id}-slides`);
+  if (!slides) return;
+  carouselState[id] = idx;
+  slides.style.transform = `translateX(-${idx * 100}%)`;
+  const dotsEl = document.getElementById(`${id}-dots`);
+  if (dotsEl) {
+    dotsEl.querySelectorAll('.carousel-dot').forEach((d,i) => d.classList.toggle('active', i===idx));
+  }
 }
 
 function filterProds(f, btn) {
@@ -1816,7 +1913,7 @@ function renderAdminTable() {
   updateAdminStats();
   document.getElementById('admin-prod-table').innerHTML=products.map(p=>`
     <tr>
-      <td><img class="table-img" src="${p.img}" alt="${p.title}" onerror="this.src='https://via.placeholder.com/46x46/0e0e22/00e5ff?text=EDA'"></td>
+      <td><img class="table-img" src="${Array.isArray(p.imgs)&&p.imgs[0]?p.imgs[0]:p.img}" alt="${p.title}" onerror="this.src='https://via.placeholder.com/46x46/0e0e22/00e5ff?text=EDA'"></td>
       <td style="font-family:var(--font-deco);">${p.title}</td>
       <td style="font-size:.78rem;color:var(--text-muted);">${p.category}</td>
       <td style="color:var(--neon-cyan);font-family:var(--font-title);">$${p.price.toLocaleString('es-AR')}</td>
@@ -1860,28 +1957,29 @@ function editProduct(id) {
   document.getElementById('p-stock').value=p.stock;
   document.getElementById('p-dims').value=p.dims||'';
   document.getElementById('add-form-title').textContent='✏ EDITANDO PRODUCTO';
-  // show image
-  setImgMode('url');
-  document.getElementById('p-img-url').value=p.img;
-  const prev=document.getElementById('img-url-preview');
-  prev.src=p.img; prev.style.display='block';
-  pendingImgData=null;
+  // Cargar las fotos existentes en pendingImgs
+  const imgs = Array.isArray(p.imgs) ? p.imgs : (p.img ? [p.img] : []);
+  pendingImgs = imgs.map(src=>({ src, name: src }));
+  setImgMode('file');
+  renderImgsGrid();
   aTab('add',document.querySelectorAll('.admin-tab')[1]);
 }
 
 function cancelEdit() {
   document.getElementById('edit-id').value='';
   document.getElementById('add-form-title').textContent='➕ AGREGAR PRODUCTO';
-  ['p-title','p-price','p-stock','p-dims','p-img-url'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['p-title','p-price','p-stock','p-dims'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  const urlEl=document.getElementById('p-img-url'); if(urlEl) urlEl.value='';
   document.getElementById('p-cat').value='Cuadros';
-  document.getElementById('img-preview').style.display='none';
-  document.getElementById('img-url-preview').style.display='none';
-  pendingImgData=null;
+  pendingImgs=[];
+  renderImgsGrid();
 }
 
 // ============================================================
-//  IMAGE MODE (file vs url)
+//  IMAGE MODE (file vs url) — múltiples fotos
 // ============================================================
+let pendingImgs = []; // array de { src: base64|url, name: string }
+
 function setImgMode(mode) {
   imgMode=mode;
   document.getElementById('img-file-zone').style.display=mode==='file'?'block':'none';
@@ -1894,29 +1992,58 @@ function setImgMode(mode) {
   document.getElementById('img-mode-url').style.background=mode==='url'?'rgba(0,229,255,0.08)':'transparent';
 }
 
-function handleImgFile(file) {
-  if (!file) return;
-  if (file.size>5*1024*1024) { toast('⚠ La imagen supera 5MB'); return; }
+function renderImgsGrid() {
+  const grid = document.getElementById('imgs-grid');
+  const count = document.getElementById('imgs-count');
+  if (!pendingImgs.length) { grid.innerHTML=''; count.textContent=''; return; }
+  grid.innerHTML = pendingImgs.map((img,i) => `
+    <div class="img-thumb-wrap">
+      <img src="${img.src}" alt="foto ${i+1}" onerror="this.src='https://via.placeholder.com/80x80/0e0e22/00e5ff?text=?'">
+      <button class="img-thumb-remove" onclick="removeImg(${i})" title="Eliminar">×</button>
+      ${i===0?'<span class="img-thumb-main">principal</span>':''}
+    </div>`).join('');
+  count.textContent = `${pendingImgs.length} foto${pendingImgs.length>1?'s':''} cargada${pendingImgs.length>1?'s':''}`;
+}
+
+function removeImg(idx) {
+  pendingImgs.splice(idx,1);
+  renderImgsGrid();
+}
+
+function handleImgFiles(files) {
+  if (!files || !files.length) return;
+  const remaining = 10 - pendingImgs.length;
+  if (remaining <= 0) { toast('⚠ Ya tenés 10 fotos cargadas (el máximo)'); return; }
+  const toLoad = Array.from(files).slice(0, remaining);
+  if (files.length > remaining) toast(`⚠ Solo se agregarán las primeras ${remaining} foto${remaining>1?'s':''} (límite 10)`);
+
+  let loaded = 0;
   const prog=document.getElementById('img-progress');
   const fill=document.getElementById('img-progress-fill');
   prog.style.display='block'; fill.style.width='0%';
-  const reader=new FileReader();
-  reader.onprogress=e=>{ if(e.lengthComputable) fill.style.width=(e.loaded/e.total*100)+'%'; };
-  reader.onload=e=>{
-    pendingImgData=e.target.result; // base64
-    fill.style.width='100%';
-    setTimeout(()=>prog.style.display='none',400);
-    const prev=document.getElementById('img-preview');
-    prev.src=pendingImgData; prev.style.display='block';
-  };
-  reader.readAsDataURL(file);
+
+  toLoad.forEach(file => {
+    if (file.size > 700000) { toast(`⚠ "${file.name}" supera ~700KB — usá una imagen más liviana`); loaded++; return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      pendingImgs.push({ src: e.target.result, name: file.name });
+      loaded++;
+      fill.style.width = (loaded/toLoad.length*100)+'%';
+      if (loaded === toLoad.length) { setTimeout(()=>prog.style.display='none',400); renderImgsGrid(); }
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
-function previewUrl() {
-  const url=document.getElementById('p-img-url').value.trim();
-  const prev=document.getElementById('img-url-preview');
-  if (url) { prev.src=url; prev.style.display='block'; } else { prev.style.display='none'; }
+function previewUrls() {
+  const raw = document.getElementById('p-img-url').value;
+  const urls = raw.split('\n').map(u=>u.trim()).filter(u=>u.length>0).slice(0,10);
+  pendingImgs = urls.map(u=>({ src:u, name:u }));
+  renderImgsGrid();
 }
+
+// Retrocompatibilidad drag&drop
+function handleImgFile(file) { handleImgFiles([file]); }
 
 // ============================================================
 //  AUDIO MODE (file vs url)
@@ -1961,9 +2088,8 @@ function dragOver(e,zone) { e.preventDefault(); document.getElementById(zone).cl
 function dragLeave(zone)  { document.getElementById(zone).classList.remove('drag'); }
 function dropFile(e,type) {
   e.preventDefault();
-  const file=e.dataTransfer.files[0]; if(!file) return;
-  if (type==='img')   handleImgFile(file);
-  if (type==='audio') handleAudioFile(file);
+  if (type==='img')   handleImgFiles(e.dataTransfer.files);
+  if (type==='audio') handleAudioFile(e.dataTransfer.files[0]);
 }
 
 // ============================================================
@@ -1977,29 +2103,32 @@ function saveProduct() {
   const dims=document.getElementById('p-dims').value.trim();
   const editId=document.getElementById('edit-id').value;
 
-  // Get image
-  let img='';
-  if (imgMode==='file'&&pendingImgData) { img=pendingImgData; }
-  else if (imgMode==='url') { img=document.getElementById('p-img-url').value.trim(); }
-  else if (editId) { img=products.find(p=>p.id===parseInt(editId))?.img||''; } // keep existing
-
-  if (!title||!cat||isNaN(price)||isNaN(stock)||!img) {
-    toast('⚠ Completá todos los campos y subí una imagen'); return;
+  // Fotos: usar pendingImgs acumulado; si se editó y no se cambiaron fotos, conservar las existentes
+  let imgs = pendingImgs.map(i=>i.src);
+  if (!imgs.length && editId) {
+    const existing = products.find(p=>p.id===parseInt(editId));
+    imgs = Array.isArray(existing?.imgs) ? existing.imgs : (existing?.img ? [existing.img] : []);
   }
 
-  if (FIREBASE_READY && imgMode==='file' && img.length > 700000) {
-    toast('⚠ La imagen es muy pesada para guardar en la base de datos. Usá una más liviana o pegá una URL.');
+  if (!title||!cat||isNaN(price)||isNaN(stock)||!imgs.length) {
+    toast('⚠ Completá todos los campos y agregá al menos una foto'); return;
+  }
+
+  const oversized = imgs.filter(s=>s.startsWith('data:')&&s.length>700000);
+  if (FIREBASE_READY && oversized.length) {
+    toast(`⚠ ${oversized.length} foto${oversized.length>1?'s son':'es'} muy pesada${oversized.length>1?'s':''} para Firebase. Usá imágenes más livianas (~500KB).`);
     return;
   }
 
+  const img = imgs[0]; // imagen principal = primera
   let productData;
   if (editId) {
     const existing=products.find(x=>x.id===parseInt(editId));
-    productData = { id: parseInt(editId), title, category:cat, price, stock, img, dims };
-    if (existing) Object.assign(existing, productData); // optimistic local update
+    productData = { id:parseInt(editId), title, category:cat, price, stock, img, imgs, dims };
+    if (existing) Object.assign(existing, productData);
   } else {
     const newId = FIREBASE_READY ? Date.now() : (products.length>0?Math.max(...products.map(p=>p.id))+1:1);
-    productData = { id:newId, title, category:cat, price, stock, img, dims };
+    productData = { id:newId, title, category:cat, price, stock, img, imgs, dims };
   }
 
   persistProduct(productData).then(()=>{
@@ -2223,3 +2352,4 @@ init();
 </script>
 </body>
 </html>
+

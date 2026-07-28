@@ -400,6 +400,15 @@ body::before {
 ============================================= */
 #products-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:22px; }
 
+/* Skeleton loading */
+.skeleton-card { background:var(--bg-card); border:1px solid rgba(255,255,255,0.06); border-radius:12px; overflow:hidden; }
+.skeleton-img  { width:100%; padding-top:72%; background: linear-gradient(90deg, #0e0e22 25%, #1a1040 50%, #0e0e22 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; }
+.skeleton-body { padding:16px; }
+.skeleton-line { height:12px; border-radius:6px; margin-bottom:10px; background: linear-gradient(90deg, #0e0e22 25%, #1a1040 50%, #0e0e22 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; }
+.skeleton-line.short { width:60%; }
+.skeleton-line.price { width:40%; height:18px; margin-top:14px; background: linear-gradient(90deg, #0a1a2a 25%, #0d2a3a 50%, #0a1a2a 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
 .product-card {
   background:var(--bg-card); border:1px solid rgba(0,229,255,0.15);
   border-radius:12px; overflow:hidden; transition:transform .2s, box-shadow .2s; position:relative;
@@ -1224,13 +1233,12 @@ footer p { font-size:.75rem; color:var(--text-muted); }
 //  → "Tus apps" → app web → "Config"
 // ============================================================
 const firebaseConfig = {
-apiKey: "AIzaSyDo_jeZ25qCvhKjh6oc6XziXmKDPa_rrLc",
-  authDomain: "ecosdelayer-cd396.firebaseapp.com",
-  projectId: "ecosdelayer-cd396",
-  storageBucket: "ecosdelayer-cd396.firebasestorage.app",
-  messagingSenderId: "423841633142",
-  appId: "1:423841633142:web:761cf322352431e0596057",
-  measurementId: "G-MD9HPRTZLQ"
+  apiKey: "PEGA_TU_API_KEY_ACA",
+  authDomain: "PEGA_TU_AUTH_DOMAIN_ACA",
+  projectId: "PEGA_TU_PROJECT_ID_ACA",
+  storageBucket: "PEGA_TU_STORAGE_BUCKET_ACA",
+  messagingSenderId: "PEGA_TU_SENDER_ID_ACA",
+  appId: "PEGA_TU_APP_ID_ACA"
 };
 
 const FIREBASE_READY = firebaseConfig.apiKey !== "PEGA_TU_API_KEY_ACA";
@@ -1252,6 +1260,7 @@ let cart = [];
 let tracks = [];
 let settings = {};
 let activeFilter = 'todos';
+let productsLoaded = false; // false mientras Firebase trae los datos por primera vez
 let activePay = 'transfer';
 let currentIdx = 0;
 let isPlaying = false;
@@ -1294,14 +1303,36 @@ function applySettingsToStorefront() {
   socialText.textContent = handles.length ? handles.join(' / ') : 'Seguinos en redes (próximamente)';
 }
 
+function showSkeletons(n=6) {
+  const grid = document.getElementById('products-grid');
+  grid.innerHTML = Array(n).fill(`
+    <div class="skeleton-card">
+      <div class="skeleton-img"></div>
+      <div class="skeleton-body">
+        <div class="skeleton-line short"></div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line short"></div>
+        <div class="skeleton-line price short"></div>
+      </div>
+    </div>`).join('');
+}
+
 function loadData() {
   if (FIREBASE_READY) {
+    // Mostrar esqueletos inmediatamente mientras llegan los datos
+    showSkeletons(6);
+
     // Productos en tiempo real
     db.collection('products').orderBy('id').onSnapshot(snap => {
       products = snap.docs.map(d => d.data());
+      productsLoaded = true;
       renderProducts(activeFilter);
       if (isAdminLoggedIn) { renderAdminTable(); }
-    }, err => console.error('Firestore products error:', err));
+    }, err => {
+      console.error('Firestore products error:', err);
+      productsLoaded = true;
+      renderProducts(activeFilter);
+    });
 
     // Música en tiempo real
     db.collection('tracks').orderBy('id').onSnapshot(snap => {
@@ -1332,6 +1363,7 @@ function loadData() {
     products = ls('eda_products') || defaultProducts();
     tracks   = ls('eda_tracks')   || defaultTracks();
     settings = ls('eda_settings') || defaultSettings();
+    productsLoaded = true;
   }
 }
 
@@ -1426,9 +1458,19 @@ function showView(view) {
 // ============================================================
 function renderProducts(filter) {
   const grid = document.getElementById('products-grid');
+
+  // Si Firebase está listo pero los datos todavía no llegaron, mostrar skeleton
+  if (FIREBASE_READY && !productsLoaded) {
+    showSkeletons(6);
+    return;
+  }
+
   const list = filter==='todos' ? products : products.filter(p=>p.category===filter);
   if (!list.length) {
-    grid.innerHTML='<p style="color:var(--text-muted);text-align:center;grid-column:1/-1;padding:40px;">No hay productos en esta categoría.</p>';
+    grid.innerHTML=`<div style="color:var(--text-muted);text-align:center;grid-column:1/-1;padding:60px 20px;">
+      <div style="font-size:2.5rem;margin-bottom:12px;opacity:.3;">🖼</div>
+      <p style="font-size:1rem;">${filter==='todos' ? 'Todavía no hay productos cargados.<br>Entrá al panel admin para agregar los primeros.' : 'No hay productos en esta categoría.'}</p>
+    </div>`;
     return;
   }
   grid.innerHTML = list.map(p => {
